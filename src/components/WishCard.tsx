@@ -1,0 +1,82 @@
+'use client';
+
+import { useState } from 'react';
+import { useHotte } from '@/lib/hotte';
+import { eur, parseAmount } from '@/lib/format';
+import type { Claim, Person, Wish } from '@/lib/types';
+import { WishBody } from './WishBody';
+
+/** Someone else's envie (or my child's), with its reservations and my actions. */
+export function WishCard({ person, wish, claims }: { person: Person; wish: Wish; claims: Claim[] }) {
+  const { d, actions, run, toast } = useHotte();
+  const [partOpen, setPartOpen] = useState(false);
+  const [amount, setAmount] = useState('');
+
+  const buy = claims.find(c => c.kind === 'buy');
+  const parts = claims.filter(c => c.kind === 'part');
+  const pot = parts.reduce((s, c) => s + (c.amount ?? 0), 0);
+  const mine = claims.find(c => c.claimer_id === d.me);
+  const othersClaimed = claims.some(c => c.claimer_id !== d.me);
+  const name = person.name;
+
+  const submitPart = () => {
+    const a = parseAmount(amount);
+    if (!a) return toast('Indique un montant.');
+    const job = mine ? () => actions.updateClaimAmount(mine.id, a) : () => actions.claim(person.id, 'part', { wishId: wish.id, amount: a });
+    run(job, `Participation de ${eur(a)} notée`).then(r => r.ok && setPartOpen(false));
+  };
+
+  let status: React.ReactNode;
+  if (buy) {
+    status = buy.claimer_id === d.me
+      ? <span className="chip mine">Tu l’offres</span>
+      : <><span className="chip bought">Déjà pris</span><span className="who">par {d.whoName(buy.claimer_id)}</span></>;
+  } else if (parts.length) {
+    status = (
+      <>
+        <span className="chip pot">Cagnotte {eur(pot)}{wish.price ? ` / ${eur(wish.price)}` : ''}</span>
+        {wish.price ? <span className="bar" title={`${Math.round((pot / wish.price) * 100)} %`}><i style={{ width: `${Math.min(100, (pot / wish.price) * 100)}%` }} /></span> : null}
+        <span className="who">{parts.map(c => `${d.whoName(c.claimer_id)} ${eur(c.amount)}`).join(', ')}</span>
+      </>
+    );
+  } else status = <span className="chip free">Libre</span>;
+
+  const partForm = (
+    <form className="row" onSubmit={e => { e.preventDefault(); submitPart(); }}>
+      <label style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>Je mets
+        <input value={amount} inputMode="decimal" placeholder="20" style={{ width: 90 }} autoFocus onChange={e => setAmount(e.target.value)} /> €
+      </label>
+      <button className="btn sm" type="submit">Valider</button>
+      <button className="btn ghost sm" type="button" onClick={() => setPartOpen(false)}>Annuler</button>
+    </form>
+  );
+
+  return (
+    <li className={'item' + (buy && buy.claimer_id !== d.me ? ' taken' : '') + (wish.removed ? ' gone' : '')}>
+      <WishBody wish={wish} />
+      <div className="status">{status}</div>
+      <div className="row">
+        {wish.removed && <span className="warn">{name} a retiré ce cadeau.</span>}
+        {mine && !wish.removed && wish.edited_at > mine.updated_at && <span className="warn">Modifié par {name} depuis ton choix : vérifie les détails.</span>}
+        {mine ? (
+          <>
+            {mine.kind === 'part' && (partOpen ? partForm
+              : <button className="btn ghost sm" onClick={() => { setAmount(String(mine.amount ?? '')); setPartOpen(true); }}>Changer ma part</button>)}
+            <button className="btn ghost sm" onClick={() => run(() => actions.cancelClaim(mine.id), 'Annulé')}>
+              {mine.kind === 'buy' ? 'Je ne l’offre plus' : 'Retirer ma part'}
+            </button>
+          </>
+        ) : !wish.removed && (partOpen ? partForm : (
+          <>
+            <button className="btn sm" disabled={!!buy || othersClaimed}
+              title={othersClaimed && !buy ? 'Une cagnotte est en cours : participe plutôt' : undefined}
+              onClick={() => run(() => actions.claim(person.id, 'buy', { wishId: wish.id, amount: wish.price }), `Noté : tu offres « ${wish.title} »`)}>
+              Je l’offre
+            </button>
+            <button className="btn alt sm" disabled={!!buy} onClick={() => { setAmount(''); setPartOpen(true); }}>Je participe</button>
+          </>
+        ))}
+      </div>
+    </li>
+  );
+}

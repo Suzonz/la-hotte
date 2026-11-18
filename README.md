@@ -1,0 +1,83 @@
+# La Hotte
+
+Listes de Noël partagées. Chacun note ses envies et les range dans des groupes (Famille, Amis, Collègues…). Les membres d'un groupe réservent un cadeau (« je l'offre »), cotisent (« je participe ») ou signalent un cadeau hors liste. **Personne ne voit jamais ce qu'on lui prépare.**
+
+- **Next.js 15** (App Router, TypeScript) pour l'interface.
+- **Supabase** pour la base Postgres et la connexion par lien magique envoyé par e-mail.
+- **Confidentialité garantie côté serveur.** Les règles Row Level Security de Postgres ([supabase/migrations/0001_init.sql](supabase/migrations/0001_init.sql)) décident ce que chaque personne reçoit. Une réservation faite pour toi n'arrive jamais dans ton navigateur, même en fouillant le réseau.
+
+## Fonctionnalités
+
+- Connexion sans mot de passe, par lien reçu par e-mail.
+- Groupes : création, renommage, lien d'invitation (qu'on peut changer), ajout de personnes déjà connues, retrait d'un membre (par le créateur, ou par la personne qui l'a ajouté), départ, suppression.
+- Envies : lien, prix, niveau d'envie, précisions. On coche **au moins un groupe**, aucun n'est coché d'office. Une même envie peut être dans plusieurs groupes.
+- Réservations : « je l'offre » (un seul acheteur par cadeau), cagnotte avec barre de progression, cadeau hors liste. Quelqu'un d'un autre groupe apparaît comme « quelqu'un d'un autre groupe ».
+- Alertes pour l'acheteur quand l'envie est modifiée ou retirée après son choix.
+- Enfants sans compte, gérés par un parent. Le parent voit les réservations faites pour son enfant.
+- Récapitulatif « À offrir » avec le total.
+
+## Installation
+
+### 1. Créer le projet Supabase (gratuit)
+
+1. Crée un compte sur [supabase.com](https://supabase.com), puis un nouveau projet.
+2. **SQL Editor** → colle tout le contenu de `supabase/migrations/0001_init.sql` → **Run**.
+3. **Authentication → URL Configuration** :
+   - *Site URL* : `http://localhost:3000` (puis l'adresse du site en ligne quand il sera déployé) ;
+   - *Redirect URLs* : ajoute `http://localhost:3000/auth/callback` (et plus tard `https://ton-site/auth/callback`).
+4. **Recommandé** : *Authentication → Emails → Magic Link*, remplace le lien du modèle par :
+   ```
+   {{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email
+   ```
+   (`{{ .RedirectTo }}` vaut déjà `…/auth/callback?next=…`, que l'appli envoie pour ramener un invité vers son groupe.)
+   Le lien de connexion marche alors aussi quand on l'ouvre sur un autre appareil (par exemple : demandé sur l'ordinateur, ouvert sur le téléphone). Avec le modèle par défaut, il faut l'ouvrir dans le même navigateur.
+
+5. **Important pour un vrai usage** : le service d'e-mail intégré à Supabase n'envoie que quelques e-mails par heure. Branche un fournisseur d'e-mails (Resend, Brevo…) dans *Authentication → Emails → SMTP Settings*.
+
+### 2. Lancer l'appli
+
+```bash
+cp .env.local.example .env.local   # puis remplis l'URL et la clé « anon » (Project Settings → API)
+npm install
+npm run dev
+```
+
+Ouvre http://localhost:3000. Si le port 3000 est déjà pris, lance `npx next dev -p 3123` et adapte les adresses de l'étape 1.
+
+### 3. Mettre en ligne (Vercel, gratuit)
+
+1. Pousse le projet sur GitHub, puis importe-le sur [vercel.com](https://vercel.com).
+2. Ajoute les deux variables `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+3. Dans Supabase, mets l'adresse Vercel dans *Site URL* et `https://…/auth/callback` dans *Redirect URLs*.
+
+## Tests
+
+```bash
+npm run test:db     # règles de confidentialité, sur un vrai Postgres local (PGlite)
+npm run typecheck
+npm run build
+```
+
+`tests/rls.test.mjs` simule quatre personnes et deux groupes, et vérifie entre autres :
+- personne ne voit les réservations faites pour soi, mais un parent voit celles faites pour son enfant ;
+- chaque groupe ne voit que ses envies, et on n'apprend pas l'existence des autres groupes ;
+- impossible de réserver une envie invisible, sa propre envie, ou un cadeau déjà pris ;
+- les règles pour ajouter et retirer des membres, et pour changer le lien d'invitation ;
+- personne ne peut modifier la liste ou les réservations d'un autre.
+
+## Organisation du code
+
+```
+supabase/migrations/   schéma + règles de sécurité (la référence)
+src/app/               pages : accueil, /login, /auth/callback, /rejoindre/[code]
+src/lib/hotte.tsx      chargement des données, calculs, toutes les actions
+src/components/        écrans : MyWishes, GroupsPanel, ManageWishes, PersonView, WishCard, GiftsView…
+src/middleware.ts      session et redirection vers /login
+```
+
+## Limites connues
+
+- Les changements des autres arrivent quand on revient sur l'onglet, ou toutes les minutes, pas en direct.
+- Pas encore de notifications par e-mail (cadeau retiré, nouvelle envie…).
+- Un enfant n'a qu'un seul parent gestionnaire.
+- Rien n'est encore prévu pour l'après-Noël (marquer « reçu », remettre à zéro).
