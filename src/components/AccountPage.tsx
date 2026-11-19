@@ -20,6 +20,21 @@ export function AccountPage() {
     if (r.ok) window.location.href = '/login?compte=supprime';
   });
 
+  // The e-mail preference is read here only (nobody else needs it).
+  const [digest, setDigest] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!d.myPerson) return;
+    getSupabase().from('persons').select('email_digest').eq('id', d.myPerson.id).single()
+      .then(({ data }) => setDigest(data ? !!(data as { email_digest: boolean }).email_digest : true));
+  }, [d.myPerson]);
+  const toggleDigest = (on: boolean) => {
+    setDigest(on);
+    run(async () => {
+      const { error } = await getSupabase().from('persons').update({ email_digest: on }).eq('id', d.myPerson!.id);
+      if (error) throw error;
+    }, on ? 'Tu recevras le récapitulatif par e-mail' : 'Plus d’e-mails récapitulatifs');
+  };
+
   return (
     <>
       <div>
@@ -27,6 +42,15 @@ export function AccountPage() {
         <h1>{d.myPerson?.name}</h1>
         {email && <p className="sub">Connecté avec {email}</p>}
       </div>
+
+      <section className="panel">
+        <h2>E-mails</h2>
+        <label className="santa-tick" htmlFor="digest">
+          <input id="digest" type="checkbox" checked={digest ?? true} disabled={digest === null} onChange={e => toggleDigest(e.target.checked)} />
+          Recevoir un récapitulatif par e-mail, au plus un par jour
+        </label>
+        <p className="note">Par exemple : un cadeau que tu as choisi a été retiré ou modifié, on t’a ajouté à un groupe, le tirage d’un Secret Santa est fait, ou l’échange approche. Jamais rien qui dévoile une surprise.</p>
+      </section>
 
       <section className="panel">
         <h2>Supprimer mon compte</h2>

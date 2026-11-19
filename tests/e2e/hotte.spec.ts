@@ -276,3 +276,17 @@ test('après Noël : reçu, offert, et on range pour l’année prochaine', asyn
   await alice.getByRole('button', { name: 'Oui, ranger' }).click();
   await expect(alice.getByText('🎁 Reçus')).toHaveCount(0);
 });
+
+test('mon compte : le récapitulatif par e-mail se coupe et se remet', async ({ browser }) => {
+  const page = await newPerson(browser, 'mails');
+  await onboard(page, 'Inès');
+  await page.getByRole('button', { name: 'Mon compte' }).click();
+  const box = page.getByLabel('Recevoir un récapitulatif par e-mail, au plus un par jour');
+  await expect(box).toBeChecked();
+  await box.uncheck();
+  await page.reload();
+  await page.getByRole('button', { name: 'Mon compte' }).click();
+  await expect(box).not.toBeChecked();
+  await box.check();
+  await expect(box).toBeChecked();
+});

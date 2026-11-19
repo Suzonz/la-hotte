@@ -10,11 +10,15 @@ Listes de Noël partagées. Chacun note ses envies et les range dans des groupes
 
 - Connexion sans mot de passe, par lien reçu par e-mail.
 - Groupes : création, renommage, lien d'invitation (qu'on peut changer), ajout de personnes déjà connues, retrait d'un membre (par le créateur, ou par la personne qui l'a ajouté), départ, suppression.
-- Envies : lien, prix, niveau d'envie, précisions. On coche **au moins un groupe**, aucun n'est coché d'office. Une même envie peut être dans plusieurs groupes.
+- Envies : lien, prix, niveau d'envie, précisions. On choisit qui la voit (un ou plusieurs groupes, ou « Seulement moi »), rien n'est coché d'office. Filtre par groupe.
 - Réservations : « je l'offre » (un seul acheteur par cadeau), cagnotte avec barre de progression, cadeau hors liste. Quelqu'un d'un autre groupe apparaît comme « quelqu'un d'un autre groupe ».
 - Alertes pour l'acheteur quand l'envie est modifiée ou retirée après son choix.
-- Enfants sans compte, gérés par un parent. Le parent voit les réservations faites pour son enfant.
-- Récapitulatif « À offrir » avec le total.
+- Enfants sans compte, gérés par **un ou plusieurs parents**, tous égaux. Les parents voient les réservations faites pour leur enfant.
+- « Ce que j'offre » : tout ce qu'on offre au même endroit, trié par personne ou par groupe, avec « Offert ✓ ».
+- Après la fête : « Reçu ✓ » sur ses envies, puis « Préparer l'année prochaine » range tout.
+- **Mises à jour en direct** : une réservation apparaît chez les autres sans recharger.
+- **Récapitulatif par e-mail**, au plus un par jour, désactivable.
+- « Mon compte » : supprimer son compte et ses données ; page « Confidentialité ».
 - **Secret Santa** par groupe, deux types choisis à la création :
   - **tirage par La Hotte** : tirage au sort par le serveur, avec exclusions (un couple ne se tire pas entre eux) ; personne, pas même l'organisateur, ne voit les paires ;
   - **tirage déjà fait** (papiers, autre site) : chacun indique la personne qu'il a tirée ; l'organisateur voit seulement qui ne l'a pas encore fait.
@@ -40,6 +44,35 @@ Listes de Noël partagées. Chacun note ses envies et les range dans des groupes
    (`{{ .RedirectTo }}` vaut déjà `…/auth/callback?next=…`, que l'appli envoie pour ramener un invité vers son groupe.)
    Le lien marche alors sur n'importe quel appareil (demandé sur l'ordinateur, ouvert sur le téléphone).
    Profites-en pour remplacer l'expéditeur « Supabase Auth » par **La Hotte** (*SMTP Settings → Sender name*) et pour écrire l'objet et le texte de l'e-mail en français : sans ça, les invités ne comprennent pas d'où vient l'e-mail.
+
+### Mettre à jour un projet existant
+
+Chaque nouveauté de la base est un fichier de `supabase/migrations/`, numéroté. Dans **SQL Editor**, exécute **dans l'ordre** ceux que ton projet n'a pas encore eus, une seule fois chacun :
+
+| Fichier | Ce qu'il apporte |
+|---|---|
+| `0001_schema.sql` | Le schéma complet (listes, groupes, réservations, Secret Santa) |
+| `0002_realtime_and_account.sql` | Mises à jour en direct, suppression de son compte |
+| `0003_coparents_and_after_christmas.sql` | Deux parents pour un enfant, « Reçu », « Offert », nouvelle année |
+| `0004_email_digest.sql` | Le récapitulatif quotidien par e-mail (à activer, voir ci-dessous) |
+
+L'avertissement « destructive operations » de Supabase est normal : ces fichiers ajoutent des choses, ils n'effacent pas tes données.
+
+### Activer le récapitulatif par e-mail (facultatif)
+
+Un e-mail par jour au plus, envoyé chaque matin vers 8 h (heure de Paris en hiver) par Brevo, seulement à ceux qui ont des nouvelles et ne l'ont pas désactivé dans « Mon compte ». Il ne dévoile jamais une surprise.
+
+1. **Brevo → SMTP et API → onglet « Clés API » → Générer une nouvelle clé API.** C'est une clé différente de la clé SMTP ; copie-la.
+2. **Supabase → SQL Editor**, en remplaçant les trois valeurs :
+   ```sql
+   select vault.create_secret('xkeysib-ta-cle-api', 'brevo_api_key');
+   select vault.create_secret('adresse.validee@dans-brevo.fr', 'la_hotte_sender');
+   select vault.create_secret('https://adresse-du-site', 'la_hotte_site_url');
+   ```
+   Les secrets sont chiffrés par Supabase (Vault) : ils ne sont pas dans le code.
+3. Pour essayer tout de suite plutôt que d'attendre le lendemain matin : `select public.send_digests();` (le résultat est le nombre d'e-mails envoyés).
+
+Pour changer une valeur plus tard : `select vault.update_secret((select id from vault.secrets where name = 'brevo_api_key'), 'nouvelle-cle');`
 
 ### 2. Lancer l'appli
 
@@ -105,9 +138,9 @@ src/middleware.ts      session et redirection vers /login
 - **Brevo** : une clé SMTP expire à sa date d'expiration (1 an) **ou après 90 jours sans envoi**. Si plus personne ne reçoit les e-mails de connexion, génère une nouvelle clé (*SMTP et API → Générer une nouvelle clé SMTP*) et colle-la dans Supabase (*Authentication → Emails → SMTP Settings → Password*).
 - N'active pas le blocage des « adresses IP non autorisées » dans Brevo : Supabase envoie depuis des adresses qui changent, les e-mails seraient bloqués.
 
+- **Clé API Brevo** (récapitulatif par e-mail) : si les e-mails ne partent plus, vérifie qu'elle est toujours valide dans Brevo, puis mets-la à jour dans Vault (commande ci-dessus).
+
 ## Limites connues
 
-- Les changements des autres arrivent quand on revient sur l'onglet, ou toutes les minutes, pas en direct.
-- Pas encore de notifications par e-mail (cadeau retiré, nouvelle envie…).
-- Un enfant n'a qu'un seul parent gestionnaire.
-- Rien n'est encore prévu pour l'après-Noël (marquer « reçu », remettre à zéro).
+- Les anniversaires (une liste par occasion, avec sa date) ne sont pas encore prévus : on réutilise la même liste d'une fête à l'autre, avec « Préparer l'année prochaine ».
+- Le récapitulatif par e-mail part à heure fixe en UTC : 8 h à Paris en hiver, 9 h en été.
