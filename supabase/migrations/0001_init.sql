@@ -356,5 +356,21 @@ begin
 end;
 $$;
 
-revoke execute on function public.invite_info(text), public.join_group(text), public.regenerate_invite(uuid) from public, anon;
-grant execute on function public.invite_info(text), public.join_group(text), public.regenerate_invite(uuid) to authenticated;
+-- ---------------------------------------------------------------- access
+-- Explicit, so the app works whether or not the Supabase project grants
+-- API access to new tables automatically. Only signed-in users get in;
+-- RLS above then decides which rows they see.
+
+grant usage on schema public to authenticated;
+revoke all on table public.persons, public.groups, public.group_members,
+                    public.wishes, public.wish_groups, public.claims from anon;
+grant select, insert, update, delete on table public.persons, public.groups, public.group_members,
+                                              public.wishes, public.wish_groups, public.claims to authenticated;
+
+revoke execute on all functions in schema public from public, anon;
+grant execute on function
+  public.is_member(uuid, uuid), public.shares_group(uuid, uuid), public.person_account(uuid),
+  public.manages(uuid), public.is_me(uuid), public.can_see_person(uuid), public.group_creator(uuid),
+  public.wish_person(uuid), public.can_see_wish(uuid),
+  public.invite_info(text), public.join_group(text), public.regenerate_invite(uuid)
+  to authenticated;

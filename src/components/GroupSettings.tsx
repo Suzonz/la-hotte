@@ -1,64 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useHotte } from '@/lib/hotte';
-import { byName, plural } from '@/lib/format';
+import { byName } from '@/lib/format';
 import type { Group } from '@/lib/types';
 
-/** « Mes groupes », always at the top of my page. */
-export function GroupsPanel({ openGroup }: { openGroup?: string | null }) {
-  const { d, actions, run } = useHotte();
-  const [open, setOpen] = useState<string | null>(openGroup ?? null);
-  const [creating, setCreating] = useState(false);
-  const [newName, setNewName] = useState('');
-
-  useEffect(() => { if (openGroup) setOpen(openGroup); }, [openGroup]);
-  const current = d.myGroups.find(g => g.id === open) ?? null;
-
-  const create = () => {
-    if (!newName.trim()) return;
-    let id = '';
-    run(async () => { id = await actions.createGroup(newName); }, `Groupe « ${newName.trim()} » créé : invite des personnes avec son lien`)
-      .then(r => { if (r.ok) { setCreating(false); setNewName(''); setOpen(id); } });
-  };
-
-  return (
-    <section className="panel groups-panel">
-      <div className="listhead">
-        <h2>Mes groupes</h2>
-        <button className="btn sm" onClick={() => { setCreating(c => !c); setNewName(''); }}>+ Nouveau groupe</button>
-      </div>
-
-      {creating && (
-        <form className="row" onSubmit={e => { e.preventDefault(); create(); }}>
-          <input aria-label="Nom du nouveau groupe" value={newName} maxLength={50} autoFocus style={{ maxWidth: 280 }}
-            placeholder="Nom du groupe, ex. Collègues" onChange={e => setNewName(e.target.value)} />
-          <button className="btn sm" type="submit">Créer</button>
-          <button className="btn ghost sm" type="button" onClick={() => setCreating(false)}>Annuler</button>
-        </form>
-      )}
-
-      {d.myGroups.length === 0 ? (
-        <p className="note">Tu n’es dans aucun groupe : personne ne voit tes envies. Crée ton premier groupe (par exemple « Famille ») avec le bouton ci-dessus, ou ouvre un lien d’invitation qu’on t’a envoyé.</p>
-      ) : (
-        <>
-          <div className="row">
-            {d.myGroups.map(g => (
-              <button key={g.id} className="gchip" aria-expanded={open === g.id} onClick={() => setOpen(open === g.id ? null : g.id)}>
-                <b>{g.name}</b> · {plural(d.membersOf(g.id).length, 'personne')}
-              </button>
-            ))}
-          </div>
-          {current
-            ? <GroupDetail key={current.id} group={current} onClosed={() => setOpen(null)} />
-            : <p className="note">Clique sur un groupe pour voir ses membres, copier son lien d’invitation ou ajouter quelqu’un.</p>}
-        </>
-      )}
-    </section>
-  );
-}
-
-function GroupDetail({ group: g, onClosed }: { group: Group; onClosed: () => void }) {
+/** A group's settings: members, invite link, adding people, rename, leave, delete. */
+export function GroupDetail({ group: g, onClosed }: { group: Group; onClosed: () => void }) {
   const { d, actions, run, toast } = useHotte();
   const isCreator = g.created_by === d.me;
   const [renaming, setRenaming] = useState(false);

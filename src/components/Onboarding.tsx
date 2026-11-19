@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useHotte } from '@/lib/hotte';
 
-/** First visit without an invite link: first name + first group (required). */
+/** First visit without an invite link: first name, and optionally a first group. */
 export function Onboarding() {
   const { actions, run, toast } = useHotte();
   const [name, setName] = useState('');
@@ -11,8 +11,9 @@ export function Onboarding() {
 
   const submit = () => {
     if (!name.trim()) return toast('Écris ton prénom.');
-    if (!group.trim()) return toast('Donne un nom à ton premier groupe, par exemple « Famille ».');
-    run(() => actions.createProfile(name, group), `Groupe « ${group.trim()} » créé : invite des personnes avec son lien`);
+    const g = group.trim();
+    run(() => actions.createProfile(name, g || null),
+      g ? `Groupe « ${g} » créé : invite des personnes avec son lien` : 'Ton espace est prêt : tes envies restent privées tant que tu ne les partages pas');
   };
 
   return (
@@ -22,14 +23,14 @@ export function Onboarding() {
         <p className="sub">Écris tes envies, regarde celles des autres et choisis ce que tu offres, sans jamais savoir ce qu’on te prépare.</p>
       </div>
       <form className="panel" onSubmit={e => { e.preventDefault(); submit(); }}>
-        <label>1. Ton prénom, tel que les autres te connaissent
+        <label>Ton prénom, tel que les autres te connaissent
           <input value={name} maxLength={40} placeholder="Ex. Mamie Jo" autoComplete="given-name" autoFocus onChange={e => setName(e.target.value)} />
         </label>
-        <label>2. Ton premier groupe
+        <label>Ton premier groupe (facultatif)
           <input value={group} maxLength={50} placeholder="Ex. Famille" onChange={e => setGroup(e.target.value)} />
         </label>
-        <p className="note">Un groupe, ce sont les personnes qui verront les envies que tu y ranges : la famille, les amis, les collègues… Tu pourras le renommer et en créer d’autres. Si on t’a envoyé un lien de groupe, ouvre plutôt ce lien.</p>
-        <div className="row"><button className="btn" type="submit">Créer ma liste</button></div>
+        <p className="note">Un groupe, ce sont les personnes qui verront les envies que tu y ranges : la famille, les amis, les collègues… Tu peux aussi commencer seul : tes envies restent privées jusqu’à ce que tu crées ou rejoignes un groupe. Si on t’a envoyé un lien de groupe, ouvre plutôt ce lien.</p>
+        <div className="row"><button className="btn" type="submit">Créer mon espace</button></div>
       </form>
     </>
   );

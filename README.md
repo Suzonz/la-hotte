@@ -15,24 +15,26 @@ Listes de Noël partagées. Chacun note ses envies et les range dans des groupes
 - Alertes pour l'acheteur quand l'envie est modifiée ou retirée après son choix.
 - Enfants sans compte, gérés par un parent. Le parent voit les réservations faites pour son enfant.
 - Récapitulatif « À offrir » avec le total.
+- **Secret Santa** par groupe : participants (membres et enfants), budget, exclusions (un couple ne se tire pas entre eux). Le tirage peut être fait **au sort par le serveur** (personne, pas même l'organisateur, ne voit les paires), **saisi par chacun** (tirage sur papier), ou **saisi par l'organisateur**. Chacun ne voit que son tirage jusqu'à la **date de révélation** (par défaut le lendemain de l'échange), puis tout le groupe voit qui offrait à qui.
 
 ## Installation
 
 ### 1. Créer le projet Supabase (gratuit)
 
 1. Crée un compte sur [supabase.com](https://supabase.com), puis un nouveau projet.
-2. **SQL Editor** → colle tout le contenu de `supabase/migrations/0001_init.sql` → **Run**.
+2. **SQL Editor** → colle le contenu de chaque fichier de `supabase/migrations/`, **dans l’ordre** (`0001_init.sql`, puis `0002_secret_santa.sql`…) → **Run** pour chacun.
 3. **Authentication → URL Configuration** :
-   - *Site URL* : `http://localhost:3000` (puis l'adresse du site en ligne quand il sera déployé) ;
-   - *Redirect URLs* : ajoute `http://localhost:3000/auth/callback` (et plus tard `https://ton-site/auth/callback`).
-4. **Recommandé** : *Authentication → Emails → Magic Link*, remplace le lien du modèle par :
+   - *Site URL* : `http://localhost:3123` (puis l'adresse du site en ligne quand il sera déployé) ;
+   - *Redirect URLs* : ajoute `http://localhost:3123/auth/callback` (et plus tard `https://ton-site/auth/callback`).
+4. **Pour développer, c'est tout.** Avec l'e-mail par défaut de Supabase, le lien de connexion s'ouvre **dans le même navigateur** que celui où il a été demandé.
+
+5. **Pour un vrai usage** : le service d'e-mail intégré à Supabase n'envoie que quelques e-mails par heure, et il ne permet pas de modifier les e-mails. Branche un fournisseur d'e-mails (Resend, Brevo…) dans *Authentication → Emails → SMTP Settings*, puis, dans *Emails → Magic link or OTP*, remplace le lien du modèle par :
    ```
    {{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email
    ```
    (`{{ .RedirectTo }}` vaut déjà `…/auth/callback?next=…`, que l'appli envoie pour ramener un invité vers son groupe.)
-   Le lien de connexion marche alors aussi quand on l'ouvre sur un autre appareil (par exemple : demandé sur l'ordinateur, ouvert sur le téléphone). Avec le modèle par défaut, il faut l'ouvrir dans le même navigateur.
-
-5. **Important pour un vrai usage** : le service d'e-mail intégré à Supabase n'envoie que quelques e-mails par heure. Branche un fournisseur d'e-mails (Resend, Brevo…) dans *Authentication → Emails → SMTP Settings*.
+   Le lien marche alors sur n'importe quel appareil (demandé sur l'ordinateur, ouvert sur le téléphone).
+   Profites-en pour remplacer l'expéditeur « Supabase Auth » par **La Hotte** (*SMTP Settings → Sender name*) et pour écrire l'objet et le texte de l'e-mail en français : sans ça, les invités ne comprennent pas d'où vient l'e-mail.
 
 ### 2. Lancer l'appli
 
@@ -42,7 +44,7 @@ npm install
 npm run dev
 ```
 
-Ouvre http://localhost:3000. Si le port 3000 est déjà pris, lance `npx next dev -p 3123` et adapte les adresses de l'étape 1.
+Ouvre http://localhost:3123.
 
 ### 3. Mettre en ligne (Vercel, gratuit)
 
@@ -74,6 +76,12 @@ src/lib/hotte.tsx      chargement des données, calculs, toutes les actions
 src/components/        écrans : MyWishes, GroupsPanel, ManageWishes, PersonView, WishCard, GiftsView…
 src/middleware.ts      session et redirection vers /login
 ```
+
+## Entretien (offres gratuites)
+
+- **Supabase** met en pause un projet gratuit resté 7 jours sans activité : tableau de bord → *Restore project*. Les données sont conservées.
+- **Brevo** : une clé SMTP expire à sa date d'expiration (1 an) **ou après 90 jours sans envoi**. Si plus personne ne reçoit les e-mails de connexion, génère une nouvelle clé (*SMTP et API → Générer une nouvelle clé SMTP*) et colle-la dans Supabase (*Authentication → Emails → SMTP Settings → Password*).
+- N'active pas le blocage des « adresses IP non autorisées » dans Brevo : Supabase envoie depuis des adresses qui changent, les e-mails seraient bloqués.
 
 ## Limites connues
 

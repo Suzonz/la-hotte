@@ -18,8 +18,10 @@ export function WishForm({ draft, onChange, onSubmit, submitLabel, onCancel }: P
   const { d, busy } = useHotte();
   const id = useId();
   const set = <K extends keyof WishDraft>(k: K, v: WishDraft[K]) => onChange({ ...draft, [k]: v });
+  // A group and « Seulement moi » exclude each other.
   const toggleGroup = (gid: string, on: boolean) =>
-    set('groups', on ? [...draft.groups, gid] : draft.groups.filter(g => g !== gid));
+    onChange({ ...draft, privateOnly: false, groups: on ? [...draft.groups, gid] : draft.groups.filter(g => g !== gid) });
+  const togglePrivate = (on: boolean) => onChange({ ...draft, privateOnly: on, groups: on ? [] : draft.groups });
 
   return (
     <form className="grid" onSubmit={e => { e.preventDefault(); onSubmit(); }}>
@@ -47,8 +49,12 @@ export function WishForm({ draft, onChange, onSubmit, submitLabel, onCancel }: P
         <textarea id={id + 'note'} rows={2} maxLength={400} value={draft.note} onChange={e => set('note', e.target.value)} />
       </label>
       <fieldset className="full groups">
-        <legend className="eyebrow">Quels groupes verront cette envie ? (au moins un)</legend>
+        <legend className="eyebrow">Qui verra cette envie ? (à choisir)</legend>
         <div className="row">
+          <label className={'gpick private' + (draft.privateOnly ? ' on' : '')} htmlFor={id + 'private'}>
+            <input type="checkbox" id={id + 'private'} checked={draft.privateOnly} onChange={e => togglePrivate(e.target.checked)} />
+            Seulement moi pour l’instant
+          </label>
           {d.myGroups.map(g => {
             const on = draft.groups.includes(g.id);
             return (
@@ -59,6 +65,7 @@ export function WishForm({ draft, onChange, onSubmit, submitLabel, onCancel }: P
             );
           })}
         </div>
+        {d.myGroups.length === 0 && <p className="note">Tu n’as pas encore de groupe : garde-la pour toi, tu pourras la partager plus tard avec « Modifier ».</p>}
       </fieldset>
       <div className="row full">
         <button className="btn" type="submit" disabled={busy}>{submitLabel}</button>

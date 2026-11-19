@@ -39,8 +39,8 @@ before(async () => {
     await db.exec(readFileSync(new URL('../supabase/migrations/' + f, import.meta.url), 'utf8'));
   }
   await db.exec(`
-    grant usage on schema public, auth to authenticated, anon;
-    grant select, insert, update, delete on all tables in schema public to authenticated;
+    -- Only what Supabase itself provides; table and function rights come from the migration.
+    grant usage on schema auth to authenticated, anon;
     insert into auth.users values ${Object.values(U).map(u => `('${u}')`).join(',')};
   `);
 
@@ -175,4 +175,11 @@ test("modifier une envie la date ; on ne peut pas s'approprier la liste d'un aut
 test('une envie retirée ne peut plus être réservée', async () => {
   await rows('alice', 'update wishes set removed = true where id = $1', [ids.pull]);
   assert.ok(await fails('dan', "insert into claims (recipient_id, wish_id, kind, amount) values ($1, $2, 'part', 5)", [ids.alice, ids.pull]));
+});
+
+test('une envie privée (sans groupe) n’est visible que par son propriétaire', async () => {
+  const id = (await rows('alice', "insert into wishes (person_id, title) values ($1, 'Secret') returning id", [ids.alice]))[0].id;
+  assert.equal((await rows('alice', 'select * from wishes where id = $1', [id])).length, 1);
+  for (const u of ['bob', 'chloe', 'dan']) assert.equal((await rows(u, 'select * from wishes where id = $1', [id])).length, 0, u);
+  assert.ok(await fails('bob', "insert into claims (recipient_id, wish_id, kind) values ($1, $2, 'buy')", [ids.alice, id]));
 });

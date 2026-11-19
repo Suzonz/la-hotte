@@ -4,6 +4,18 @@ import { useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
 import { Logo } from './Header';
 
+// Supabase sends back different limits; say which one it is.
+function loginErrorMessage(message: string, code?: string): string {
+  const wait = /after (\d+) seconds?/i.exec(message);
+  if (wait) return `Un lien vient déjà d’être envoyé à cette adresse. Attends ${wait[1]} secondes avant d’en redemander un.`;
+  if (code === 'over_email_send_rate_limit' || /email rate limit/i.test(message))
+    return 'Le nombre d’e-mails de connexion par heure est atteint pour tout le site. Réessaie un peu plus tard, ou utilise le dernier lien reçu s’il n’a pas encore servi.';
+  if (code === 'over_request_rate_limit' || /rate limit/i.test(message))
+    return 'Trop de demandes depuis cet appareil. Réessaie dans quelques minutes.';
+  if (/invalid.*email|email.*invalid/i.test(message)) return 'Cette adresse e-mail n’est pas valide.';
+  return 'L’envoi a échoué. Vérifie l’adresse e-mail et réessaie.';
+}
+
 export function LoginForm({ next, linkError }: { next: string; linkError: boolean }) {
   const [email, setEmail] = useState('');
   const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle');
@@ -19,9 +31,7 @@ export function LoginForm({ next, linkError }: { next: string; linkError: boolea
     });
     if (error) {
       setState('idle');
-      setError(/rate limit/i.test(error.message)
-        ? 'Trop de demandes d’affilée. Attends une minute avant de redemander un lien.'
-        : 'L’envoi a échoué. Vérifie l’adresse e-mail et réessaie.');
+      setError(loginErrorMessage(error.message, (error as { code?: string }).code));
     } else setState('sent');
   };
 

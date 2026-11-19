@@ -4,11 +4,11 @@
   "private": true,
   "description": "Listes de Noël partagées : chacun note ses envies, réserve ou cotise pour celles des autres, sans jamais voir ce qu'on lui prépare.",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3123",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test:db": "node --test tests/rls.test.mjs"
+    "test:db": "node --test tests/rls.test.mjs tests/santa.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

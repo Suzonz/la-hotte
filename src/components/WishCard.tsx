@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useHotte } from '@/lib/hotte';
 import { eur, parseAmount } from '@/lib/format';
 import type { Claim, Person, Wish } from '@/lib/types';
+import { SantaGiftToggle } from './SantaGifts';
 import { WishBody } from './WishBody';
 
 /** Someone else's envie (or my child's), with its reservations and my actions. */
@@ -22,8 +23,10 @@ export function WishCard({ person, wish, claims }: { person: Person; wish: Wish;
   const submitPart = () => {
     const a = parseAmount(amount);
     if (!a) return toast('Indique un montant.');
-    const job = mine ? () => actions.updateClaimAmount(mine.id, a) : () => actions.claim(person.id, 'part', { wishId: wish.id, amount: a });
-    run(job, `Participation de ${eur(a)} notée`).then(r => r.ok && setPartOpen(false));
+    run(async () => {
+      if (mine) await actions.updateClaimAmount(mine.id, a);
+      else await actions.claim(person.id, 'part', { wishId: wish.id, amount: a });
+    }, `Participation de ${eur(a)} notée`).then(r => r.ok && setPartOpen(false));
   };
 
   let status: React.ReactNode;
@@ -77,6 +80,7 @@ export function WishCard({ person, wish, claims }: { person: Person; wish: Wish;
           </>
         ))}
       </div>
+      {mine && <SantaGiftToggle claim={mine} />}
     </li>
   );
 }
