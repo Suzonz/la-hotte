@@ -35,13 +35,13 @@ export function SantaEditor({ group, mode, santa, onDone }: { group: Group; mode
 
   const pick = (p: Person) => {
     const on = form.participants.includes(p.id);
-    const parent = p.manager_id ? d.personByUser.get(p.manager_id) : null;
+    const parents = !p.user_id ? d.parentNames(p) : '';
     return (
       <label key={p.id} className={'gpick' + (on ? ' on' : '')}>
         <input type="checkbox" checked={on}
           onChange={e => set('participants', e.target.checked ? [...form.participants, p.id] : form.participants.filter(x => x !== p.id))} />
         {p.user_id === d.me ? `${p.name} (toi)` : p.name}
-        {parent && <span className="who">({parent.user_id === d.me ? 'ton enfant' : `enfant de ${parent.name}`})</span>}
+        {parents && <span className="who">(enfant de {parents})</span>}
       </label>
     );
   };

@@ -14,28 +14,30 @@ import { WishCard } from './WishCard';
  */
 export function PersonView({ person, group }: { person: Person; group?: Group }) {
   const { d } = useHotte();
-  const iManage = person.manager_id === d.me;
+  const kid = d.isKid(person);
+  const iManage = kid && d.manages(person);
 
   const claims = d.claimsFor(person.id);
+  // Gone envies (removed, or already received) stay visible only to whoever had chosen them.
+  const gone = (w: { removed: boolean; received_at: string | null }) => w.removed || !!w.received_at;
   const wishes = d.wishesOf(person.id)
-    .filter(w => !w.removed || claims.some(c => c.wish_id === w.id))
+    .filter(w => !gone(w) || claims.some(c => c.wish_id === w.id))
     .filter(w => (group ? d.groupsOfWish(w.id).includes(group.id) : true))
-    .sort((a, b) => Number(a.removed) - Number(b.removed) || b.stars - a.stars);
+    .sort((a, b) => Number(gone(a)) - Number(gone(b)) || b.stars - a.stars);
   const common = d.commonGroups(person).map(g => g.name);
-  const manager = person.manager_id ? d.personByUser.get(person.manager_id) : null;
-  const managedBy = person.manager_id ? `gérées par ${iManage ? 'toi' : manager?.name ?? 'un parent'}` : '';
+  const managedBy = kid ? `gérées par ${d.parentNames(person)}` : '';
 
   return (
     <>
       <div>
         <span className="eyebrow">
-          {group ? `Groupe ${group.name}${managedBy ? ' · ' + managedBy : ''}` : person.manager_id ? `Envies ${managedBy}` : 'Les envies de'}
+          {group ? `Groupe ${group.name}${managedBy ? ' · ' + managedBy : ''}` : kid ? `Envies ${managedBy}` : 'Les envies de'}
         </span>
         <h1>{person.name}</h1>
         <p className="sub">
           {iManage
             ? 'Tu gères ses envies. Tout le monde voit ce qui est réservé dessus, toi compris, pour éviter les doublons.'
-            : person.manager_id ? '' : `${person.name} ne voit pas ce qui est réservé sur ses envies.`}
+            : kid ? '' : `${person.name} ne voit pas ce qui est réservé sur ses envies.`}
           {group && common.length > 1 && ` Vous êtes aussi ensemble dans : ${common.filter(n => n !== group.name).join(', ')}.`}
           {!group && !iManage && ` Groupes en commun : ${common.join(', ') || 'aucun'}.`}
         </p>

@@ -21,16 +21,23 @@ export function derive(data: HotteData, me: string) {
   const myGroups: Group[] = data.groups.filter(g => isMember(me, g.id)).sort((a, b) => byName(a.name, b.name));
   const myGroupIds = myGroups.map(g => g.id);
 
-  const accountOf = (p: Person) => p.user_id ?? p.manager_id ?? '';
-  const manages = (p: Person) => p.user_id === me || p.manager_id === me;
-  const myKids = data.persons.filter(p => p.manager_id === me).sort((a, b) => byName(a.name, b.name));
+  /** Every account behind a person: themself, or all the parents of a child (first one first). */
+  const accountsOf = (p: Person): string[] => p.user_id
+    ? [p.user_id]
+    : [p.manager_id ?? '', ...data.personManagers.filter(m => m.person_id === p.id).map(m => m.user_id)].filter(Boolean);
+  const accountOf = (p: Person) => accountsOf(p)[0] ?? '';
+  const manages = (p: Person) => accountsOf(p).includes(me);
+  const isKid = (p: Person) => !p.user_id;
+  const myKids = data.persons.filter(p => isKid(p) && manages(p)).sort((a, b) => byName(a.name, b.name));
+  /** « toi, Paul » — the parents of a child, as this viewer names them. */
+  const parentNames = (p: Person) => accountsOf(p).map(u => (u === me ? 'toi' : personByUser.get(u)?.name ?? 'un parent')).join(', ');
 
   const groupsOfWish = (wishId: string) => data.wishGroups.filter(wg => wg.wish_id === wishId && groupById.has(wg.group_id)).map(wg => wg.group_id);
   const wishesOf = (personId: string) => data.wishes.filter(w => w.person_id === personId);
   const claimsOn = (wishId: string) => data.claims.filter(c => c.wish_id === wishId);
   const claimsFor = (personId: string) => data.claims.filter(c => c.recipient_id === personId);
   const myClaims = data.claims.filter(c => c.claimer_id === me);
-  const commonGroups = (p: Person) => myGroups.filter(g => isMember(accountOf(p), g.id));
+  const commonGroups = (p: Person) => myGroups.filter(g => accountsOf(p).some(a => isMember(a, g.id)));
 
   /** A name for whoever made a claim; people outside my groups stay anonymous. */
   const whoName = (uid: string) => (uid === me ? 'toi' : personByUser.get(uid)?.name ?? 'quelqu’un d’un autre groupe');
@@ -39,7 +46,7 @@ export function derive(data: HotteData, me: string) {
   // and other people's children who have at least one envie I can see.
   const others = data.persons
     .filter(p => p.user_id !== me)
-    .filter(p => p.user_id || p.manager_id === me || wishesOf(p.id).some(w => !w.removed) || myClaims.some(c => c.recipient_id === p.id))
+    .filter(p => p.user_id || manages(p) || wishesOf(p.id).some(w => !w.removed) || myClaims.some(c => c.recipient_id === p.id))
     .sort((a, b) => (Number(manages(b)) - Number(manages(a))) || byName(a.name, b.name));
 
   // Secret Santa
@@ -69,7 +76,7 @@ export function derive(data: HotteData, me: string) {
   return {
     me, myPerson, myGroups, myGroupIds, myKids, myClaims, others,
     personById, personByUser, groupById,
-    membersOf, isMember, accountOf, manages, commonGroups,
+    membersOf, isMember, accountOf, accountsOf, manages, isKid, parentNames, commonGroups,
     groupsOfWish, wishesOf, claimsOn, claimsFor, whoName,
     santasOf, participantsOf, exclusionsOf, pairsOf, isRevealed, santaProgressOf, missingOf, myDraws,
     santaGiftClaims, isSantaGift, santaGiftState,
@@ -98,7 +105,7 @@ export const useHotte = () => {
 
 async function fetchAll(): Promise<HotteData> {
   const sb = getSupabase();
-  const [p, g, m, w, wg, c, s, sp, se, pr, sg, ss] = await Promise.all([
+  const [p, g, m, w, wg, c, s, sp, se, pr, sg, ss, pm] = await Promise.all([
     sb.from('persons').select('id, user_id, manager_id, name'),
     sb.from('groups').select('id, name, created_by, invite_code'),
     sb.from('group_members').select('group_id, user_id, added_by'),
@@ -111,8 +118,9 @@ async function fetchAll(): Promise<HotteData> {
     sb.from('santa_pairs').select('santa_id, giver_id, receiver_id, entered_by, changed_at'),
     sb.from('santa_gifts').select('claim_id, santa_id, giver_id'),
     sb.from('santa_status').select('santa_id, giver_id, done'),
+    sb.from('person_managers').select('person_id, user_id'),
   ]);
-  const err = [p, g, m, w, wg, c, s, sp, se, pr, sg, ss].find(r => r.error)?.error;
+  const err = [p, g, m, w, wg, c, s, sp, se, pr, sg, ss, pm].find(r => r.error)?.error;
   if (err) throw new Error(err.message);
 
   const santas = ((s.data ?? []) as Santa[]).map(x => ({ ...x, budget: num(x.budget) }));
@@ -135,7 +143,7 @@ async function fetchAll(): Promise<HotteData> {
     wishGroups: wg.data ?? [],
     claims: (c.data ?? []).map(x => ({ ...x, amount: num(x.amount) })) as Claim[],
     santas, santaParticipants: sp.data ?? [], santaExclusions: se.data ?? [], santaPairs: pr.data ?? [], santaProgress, santaMissing,
-    santaGifts: sg.data ?? [], santaStatus: ss.data ?? [],
+    santaGifts: sg.data ?? [], santaStatus: ss.data ?? [], personManagers: pm.data ?? [],
   };
 }
 
@@ -207,6 +215,26 @@ function makeActions(get: () => { me: string; d: Derived }) {
       must(await sb.rpc('delete_my_account'));
       await sb.auth.signOut();
     },
+    // co-parents
+    async addCoParent(kidId: string, userId: string) {
+      must(await sb.from('person_managers').insert({ person_id: kidId, user_id: userId, added_by: get().me }));
+    },
+    async removeParent(kidId: string, userId: string) {
+      must(await sb.rpc('kid_remove_manager', { kid: kidId, u: userId }));
+    },
+
+    // after Christmas
+    async setReceived(wishId: string, received: boolean) {
+      must(await sb.from('wishes').update({ received_at: received ? new Date().toISOString() : null }).eq('id', wishId));
+    },
+    async setOffered(claimId: string, offered: boolean) {
+      must(await sb.from('claims').update({ offered_at: offered ? new Date().toISOString() : null }).eq('id', claimId));
+    },
+    async newSeason() {
+      const { data } = must(await sb.rpc('new_season'));
+      return data as { wishes: number; claims: number };
+    },
+
     async renamePerson(personId: string, name: string) {
       must(await sb.from('persons').update({ name: name.trim() }).eq('id', personId));
     },

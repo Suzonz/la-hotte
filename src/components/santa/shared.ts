@@ -33,6 +33,6 @@ export function useCandidates(group: Group) {
   const { d, data } = useHotte();
   const memberIds = d.membersOf(group.id).map(m => m.user_id);
   return data.persons
-    .filter(p => (p.user_id && memberIds.includes(p.user_id)) || (p.manager_id && memberIds.includes(p.manager_id)))
+    .filter(p => d.accountsOf(p).some(a => memberIds.includes(a)))
     .sort((a, b) => byName(a.name, b.name));
 }

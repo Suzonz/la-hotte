@@ -43,7 +43,8 @@ type Filter = 'all' | 'private' | string;   // string = a group id
 export function WishList({ person }: { person: Person }) {
   const { d } = useHotte();
   const [filter, setFilter] = useState<Filter>('all');
-  const live = d.wishesOf(person.id).filter(w => !w.removed).sort(byWant);
+  const live = d.wishesOf(person.id).filter(w => !w.removed && !w.received_at).sort(byWant);
+  const received = d.wishesOf(person.id).filter(w => !w.removed && w.received_at);
   const visibleGroups = (w: Wish) => d.groupsOfWish(w.id).filter(g => d.myGroupIds.includes(g));
   const count = (f: Filter) => live.filter(w => matches(w, f)).length;
   const matches = (w: Wish, f: Filter) => f === 'all' || (f === 'private' ? visibleGroups(w).length === 0 : visibleGroups(w).includes(f));
@@ -51,10 +52,16 @@ export function WishList({ person }: { person: Person }) {
   const hasPrivate = count('private') > 0;
 
   if (!live.length) {
-    return <div className="empty">Aucune envie pour l’instant. Ajoute la première au-dessus.</div>;
+    return (
+      <>
+        <div className="empty">Aucune envie pour l’instant. Ajoute la première au-dessus.</div>
+        <ReceivedList wishes={received} />
+      </>
+    );
   }
 
   return (
+    <>
     <section className="stack" style={{ alignItems: 'stretch', gap: 12 }}>
       <div className="listhead">
         <h2>{person.user_id === d.me ? 'Mes envies' : `Les envies de ${person.name}`} ({live.length})</h2>
@@ -75,6 +82,29 @@ export function WishList({ person }: { person: Person }) {
         ? <OwnWishList wishes={shown} />
         : <div className="empty">Aucune envie dans ce filtre.</div>}
     </section>
+    <ReceivedList wishes={received} />
+    </>
+  );
+}
+
+/** « Reçus » : folded away; an envie marked by mistake can go back to the list. */
+function ReceivedList({ wishes }: { wishes: Wish[] }) {
+  const { actions, run } = useHotte();
+  if (!wishes.length) return null;
+  return (
+    <details className="received">
+      <summary>🎁 Reçus ({wishes.length})</summary>
+      <ul className="items">
+        {wishes.map(w => (
+          <li key={w.id} className="item">
+            <span className="row" style={{ justifyContent: 'space-between' }}>
+              <span>{w.title}</span>
+              <button className="link-btn" onClick={() => run(() => actions.setReceived(w.id, false), `« ${w.title} » est de retour dans ta liste`)}>Remettre dans ma liste</button>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
@@ -120,6 +150,7 @@ function OwnWishList({ wishes }: { wishes: Wish[] }) {
                     setEditing(w.id);
                   }}>Modifier</button>
                   <button className="link-btn" onClick={() => setConfirmDel(w.id)}>Retirer</button>
+                  <button className="link-btn" onClick={() => run(() => actions.setReceived(w.id, true), `« ${w.title} » est rangé dans tes cadeaux reçus 🎁`)}>Reçu ✓</button>
                 </>
               )}
             </div>

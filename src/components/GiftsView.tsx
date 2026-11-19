@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useHotte } from '@/lib/hotte';
 import { byName, eur, hostOf } from '@/lib/format';
 import type { Claim } from '@/lib/types';
+import { NewSeason } from './NewSeason';
 import { SantaTracker } from './santa/SantaGifts';
 
 type Sort = 'person' | 'group';
@@ -18,9 +19,19 @@ function ClaimLine({ claim: c, showWho }: { claim: Claim; showWho: boolean }) {
   const who = d.personById.get(c.recipient_id)!;
   const forSanta = data.santaGifts.some(x => x.claim_id === c.id);
   const title = w?.title ?? (c.note || 'Une surprise');
+  // The box follows the click at once; the saved value takes over after the reload.
+  const [offeredNow, setOfferedNow] = useState<boolean | null>(null);
+  const offered = offeredNow ?? !!c.offered_at;
 
   return (
-    <div className="gline">
+    <div className={'gline' + (offered ? ' offered' : '')}>
+      <label className="santa-tick" title="Coche quand le cadeau est donné">
+        <input type="checkbox" checked={offered} aria-label={`Offert : ${title}`} onChange={e => {
+          const v = e.target.checked;
+          setOfferedNow(v);
+          run(() => actions.setOffered(c.id, v), v ? `« ${title} » est offert ✓` : undefined).then(() => setOfferedNow(null));
+        }} />
+      </label>
       <span className="t">
         <span className="eyebrow">{kind}{showWho ? ` · pour ${who.name}` : ''}</span>
         {forSanta && <span className="chip pot" style={{ marginLeft: 6 }}>🎅 Secret Santa</span>}
@@ -112,6 +123,7 @@ export function GiftsView({ onOpen }: { onOpen: (personId: string, groupId?: str
               </section>
             );
           })}
+          <NewSeason />
         </>
       )}
     </>

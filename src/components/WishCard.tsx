@@ -19,6 +19,7 @@ export function WishCard({ person, wish, claims }: { person: Person; wish: Wish;
   const mine = claims.find(c => c.claimer_id === d.me);
   const othersClaimed = claims.some(c => c.claimer_id !== d.me);
   const name = person.name;
+  const gone = wish.removed || !!wish.received_at;   // retiré, ou déjà reçu : plus réservable
 
   const submitPart = () => {
     const a = parseAmount(amount);
@@ -55,12 +56,13 @@ export function WishCard({ person, wish, claims }: { person: Person; wish: Wish;
   );
 
   return (
-    <li className={'item' + (buy && buy.claimer_id !== d.me ? ' taken' : '') + (wish.removed ? ' gone' : '')}>
+    <li className={'item' + (buy && buy.claimer_id !== d.me ? ' taken' : '') + (gone ? ' gone' : '')}>
       <WishBody wish={wish} />
       <div className="status">{status}</div>
       <div className="row">
         {wish.removed && <span className="warn">{name} a retiré ce cadeau.</span>}
-        {mine && !wish.removed && wish.edited_at > mine.updated_at && <span className="warn">Modifié par {name} depuis ton choix : vérifie les détails.</span>}
+        {!wish.removed && wish.received_at && <span className="warn">{name} l’a déjà reçu.</span>}
+        {mine && !gone && wish.edited_at > mine.updated_at && <span className="warn">Modifié par {name} depuis ton choix : vérifie les détails.</span>}
         {mine ? (
           <>
             {mine.kind === 'part' && (partOpen ? partForm
@@ -69,7 +71,7 @@ export function WishCard({ person, wish, claims }: { person: Person; wish: Wish;
               {mine.kind === 'buy' ? 'Je ne l’offre plus' : 'Retirer ma part'}
             </button>
           </>
-        ) : !wish.removed && (partOpen ? partForm : (
+        ) : !gone && (partOpen ? partForm : (
           <>
             <button className="btn sm" disabled={!!buy || othersClaimed}
               title={othersClaimed && !buy ? 'Une cagnotte est en cours : participe plutôt' : undefined}

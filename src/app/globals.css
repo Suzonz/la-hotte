@@ -194,6 +194,8 @@ ul.members li:first-child { border-top: 0 }
 .prose ul { margin: 4px 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px }
 .app-footer { display: flex; gap: 16px; justify-content: center; padding-block: 8px 32px; font-size: 13px }
 .app-footer a, .app-footer button { color: var(--muted); background: none; border: 0; font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px }
+.received summary { cursor: pointer; color: var(--muted); font-weight: 600; padding-block: 6px }
+.gline.offered .t { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line) }
 /* Secondary actions on a row: quiet text, not boxed buttons. */
 .link-btn { background: none; border: 0; padding: 2px 0; margin-right: 14px; color: var(--muted); font: 500 13px var(--body); cursor: pointer }
 .link-btn:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px }

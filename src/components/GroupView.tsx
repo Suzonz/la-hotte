@@ -22,16 +22,16 @@ export function GroupView({ group, initialSettings, onOpenPerson, onOpenMine }: 
     .map(uid => d.personByUser.get(uid))
     .filter((p): p is Person => !!p)
     .sort((a, b) => (a.user_id === d.me ? -1 : b.user_id === d.me ? 1 : byName(a.name, b.name)));
-  // Children appear under the group when their parent is a member and they have envies here (always for my own children).
+  // Children appear under the group when one of their parents is a member and they have envies here (always for my own children).
   const kids = data.persons
-    .filter(p => p.manager_id && memberIds.includes(p.manager_id))
-    .filter(p => p.manager_id === d.me || liveInGroup(p).length > 0)
+    .filter(p => d.isKid(p) && d.accountsOf(p).some(a => memberIds.includes(a)))
+    .filter(p => d.manages(p) || liveInGroup(p).length > 0)
     .sort((a, b) => byName(a.name, b.name));
 
   const card = (p: Person) => {
     const isMe = p.user_id === d.me;
     const n = liveInGroup(p).length;
-    const parent = p.manager_id ? d.personByUser.get(p.manager_id) : null;
+    const parents = d.isKid(p) ? d.parentNames(p) : '';
     return (
       <li key={p.id}>
         <button className="member-card" onClick={() => (isMe ? onOpenMine() : onOpenPerson(p.id))}>
@@ -40,7 +40,7 @@ export function GroupView({ group, initialSettings, onOpenPerson, onOpenMine }: 
             <b>{isMe ? `${p.name} (toi)` : p.name}</b>
             <span className="who">
               {plural(n, 'envie')} dans ce groupe
-              {parent ? ` · enfant de ${parent.user_id === d.me ? 'toi' : parent.name}` : ''}
+              {parents ? ` · enfant de ${parents}` : ''}
             </span>
           </span>
           <span className="chev" aria-hidden="true">›</span>

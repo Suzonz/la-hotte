@@ -222,3 +222,57 @@ test('téléphone : captures des écrans principaux', async ({ browser }) => {
   await bob.getByRole('button', { name: /Faire le tirage avec La Hotte/ }).click();
   await shot(bob, 'm6-secret-santa-creation');
 });
+
+test('deux parents : la liste de l’enfant se partage', async ({ browser }) => {
+  const mum = await newPerson(browser, 'maman');
+  await onboard(mum, 'Maman', 'Famille');
+  await menu(mum, /Ma liste/, '＋ Ajouter un enfant');
+  await mum.getByLabel('Prénom de l’enfant').fill('Léo');
+  await mum.getByRole('button', { name: 'Créer sa liste' }).click();
+  await expect(mum.getByRole('heading', { name: 'Les envies de Léo' })).toBeVisible();
+  const path = await inviteLink(mum, 'Famille');
+
+  const dad = await join(browser, 'papa', 'Papa', path);
+  await menu(mum, /Ma liste/, 'Liste de Léo');
+  await mum.getByRole('button', { name: '+ Partager la gestion' }).click();
+  await mum.getByRole('button', { name: 'Papa' }).click();
+  await expect(mum.locator('ul.members')).toContainText('Papa');
+
+  await dad.reload();
+  await menu(dad, /Ma liste/, 'Liste de Léo');
+  await addWish(dad, 'Train en bois', ['Famille']);
+  await mum.reload();
+  await menu(mum, /Ma liste/, 'Liste de Léo');
+  await expect(mum.locator('.items .item', { hasText: 'Train en bois' })).toBeVisible();
+  await shot(mum, '6-parents-de-leo');
+});
+
+test('après Noël : reçu, offert, et on range pour l’année prochaine', async ({ browser }) => {
+  const alice = await newPerson(browser, 'noel-a');
+  await onboard(alice, 'Alice', 'Famille');
+  await addWish(alice, 'Gants', ['Famille']);
+  const path = await inviteLink(alice, 'Famille');
+  const bob = await join(browser, 'noel-b', 'Bob', path);
+  await bob.getByRole('button', { name: /Alice/ }).click();
+  await bob.locator('.item', { hasText: 'Gants' }).getByRole('button', { name: 'Je l’offre' }).click();
+
+  // Alice: « Reçu ✓ » takes the envie out of her list.
+  await menu(alice, /Ma liste/, 'Ma liste');
+  await alice.locator('.items .item', { hasText: 'Gants' }).getByRole('button', { name: 'Reçu ✓' }).click();
+  await expect(alice.getByText('🎁 Reçus (1)')).toBeVisible();
+  // Bob is told, and can no longer reserve it.
+  await expect(bob.locator('.item', { hasText: 'Gants' }).getByText('Alice l’a déjà reçu.')).toBeVisible({ timeout: 15_000 });
+
+  // Bob: « Offert ✓ », then tidy up.
+  await bob.getByRole('button', { name: /Ce que j’offre/ }).click();
+  await bob.getByLabel('Offert : Gants').check();
+  await bob.getByRole('button', { name: 'Ranger' }).click();
+  await bob.getByRole('button', { name: 'Oui, ranger' }).click();
+  await expect(bob.locator('.gline', { hasText: 'Gants' })).toHaveCount(0);
+  await shot(bob, '7-apres-rangement');
+
+  // Alice tidies her side too: the received envie is gone for good.
+  await alice.getByRole('button', { name: 'Ranger' }).click();
+  await alice.getByRole('button', { name: 'Oui, ranger' }).click();
+  await expect(alice.getByText('🎁 Reçus')).toHaveCount(0);
+});

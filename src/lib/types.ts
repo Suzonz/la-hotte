@@ -4,12 +4,16 @@ export type Member = { group_id: string; user_id: string; added_by: string | nul
 export type Wish = {
   id: string; person_id: string; title: string; link: string | null; price: number | null;
   stars: number; note: string; removed: boolean; created_at: string; edited_at: string;
+  /** « Reçu ✓ », set by its owner after the event */
+  received_at: string | null;
 };
 export type WishGroup = { wish_id: string; group_id: string };
 export type ClaimKind = 'buy' | 'part' | 'other';
 export type Claim = {
   id: string; claimer_id: string; recipient_id: string; wish_id: string | null; kind: ClaimKind;
   amount: number | null; note: string; created_at: string; updated_at: string;
+  /** « Offert ✓ », set by the giver */
+  offered_at: string | null;
 };
 
 /** draw: the app draws at random · manual: drawn elsewhere, names are typed in */
@@ -42,6 +46,8 @@ export type HotteData = {
   /** organiser only, « tirage déjà fait »: participants who have not said whom they drew */
   santaMissing: Record<string, string[]>;
   santaGifts: SantaGift[]; santaStatus: SantaStatus[];
+  /** Other parents of a child (the first one is persons.manager_id). */
+  personManagers: { person_id: string; user_id: string }[];
 };
 
 /** Fields of the envie form. `privateOnly`: the owner explicitly chose « Seulement moi ». */

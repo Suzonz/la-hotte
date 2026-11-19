@@ -39,7 +39,7 @@ function Screens({ openGroup }: { openGroup: string | null }) {
   const openPerson = (personId: string, groupId?: string) => {
     const p = data.persons.find(x => x.id === personId);
     if (p?.user_id === d.me) go({ kind: 'list' });
-    else if (p?.manager_id === d.me && !groupId) go({ kind: 'list', personId });
+    else if (p && d.isKid(p) && d.manages(p) && !groupId) go({ kind: 'list', personId });
     else go({ kind: 'person', personId, groupId });
   };
 
