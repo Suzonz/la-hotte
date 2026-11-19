@@ -202,6 +202,11 @@ function makeActions(get: () => { me: string; d: Derived }) {
       must(await sb.from('persons').insert({ user_id: me, name: name.trim() }));
       if (firstGroup) must(await sb.from('groups').insert({ name: firstGroup.trim() }));
     },
+    /** Deletes my account and everything that is mine; groups and Secret Santas go to another member. */
+    async deleteMyAccount() {
+      must(await sb.rpc('delete_my_account'));
+      await sb.auth.signOut();
+    },
     async renamePerson(personId: string, name: string) {
       must(await sb.from('persons').update({ name: name.trim() }).eq('id', personId));
     },
@@ -371,12 +376,25 @@ export function HotteProvider({ me, children }: { me: string; children: React.Re
 
   useEffect(() => {
     reload();
-    // Other people change things too: refresh when the tab comes back, and every minute.
+    // Other people change things too. Live: any change on our tables triggers a
+    // reload (a short pause groups a burst of changes into one). The data itself
+    // still comes from fetchAll, so the privacy rules apply as usual.
+    let pending: ReturnType<typeof setTimeout> | undefined;
+    const soon = () => { clearTimeout(pending); pending = setTimeout(reload, 400); };
+    const channel = getSupabase()
+      .channel('la-hotte-changes')
+      .on('postgres_changes', { event: '*', schema: 'public' }, soon)
+      .subscribe();
+    // Safety nets if the live connection drops: when the tab comes back, and every 5 minutes.
     const onFocus = () => { if (document.visibilityState === 'visible') reload(); };
     document.addEventListener('visibilitychange', onFocus);
     window.addEventListener('focus', onFocus);
-    const timer = setInterval(onFocus, 60_000);
-    return () => { document.removeEventListener('visibilitychange', onFocus); window.removeEventListener('focus', onFocus); clearInterval(timer); };
+    const timer = setInterval(onFocus, 5 * 60_000);
+    return () => {
+      clearTimeout(pending);
+      getSupabase().removeChannel(channel);
+      document.removeEventListener('visibilitychange', onFocus); window.removeEventListener('focus', onFocus); clearInterval(timer);
+    };
   }, [reload]);
 
   const d = useMemo(() => (data ? derive(data, me) : null), [data, me]);

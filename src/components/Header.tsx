@@ -17,7 +17,7 @@ export function Logo() {
 
 export type MenuItem = { key: string; label: string; current?: boolean; accent?: boolean; onSelect: () => void };
 /** A top tab: either a plain button (onSelect) or a drop-down (menu). */
-export type Tab = { key: string; label: string; active: boolean; onSelect?: () => void; menu?: MenuItem[] };
+export type Tab = { key: string; label: React.ReactNode; active: boolean; onSelect?: () => void; menu?: MenuItem[] };
 
 export function Header({ tabs }: { tabs: Tab[] }) {
   const [days, setDays] = useState<number | null>(null);
@@ -34,7 +34,7 @@ export function Header({ tabs }: { tabs: Tab[] }) {
         <div className="brandrow">
           <a className="brand" href="/"><Logo />La Hotte</a>
           <div className="row">
-            {days != null && <span className="countdown">{days === 0 ? 'C’est Noël !' : `J-${days} avant Noël`}</span>}
+            {days != null && <span className="countdown">{days === 0 ? 'C’est Noël !' : <>J-{days}<span className="hide-sm"> avant Noël</span></>}</span>}
             {tabs.length > 0 && <button className="btn ghost sm" onClick={signOut}>Se déconnecter</button>}
           </div>
         </div>

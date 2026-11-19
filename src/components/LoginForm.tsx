@@ -16,7 +16,7 @@ function loginErrorMessage(message: string, code?: string): string {
   return 'L’envoi a échoué. Vérifie l’adresse e-mail et réessaie.';
 }
 
-export function LoginForm({ next, linkError }: { next: string; linkError: boolean }) {
+export function LoginForm({ next, linkError, deleted }: { next: string; linkError: boolean; deleted?: boolean }) {
   const [email, setEmail] = useState('');
   const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [error, setError] = useState<string | null>(linkError ? 'Ce lien de connexion a expiré ou a déjà servi. Demande-en un nouveau.' : null);
@@ -54,10 +54,12 @@ export function LoginForm({ next, linkError }: { next: string; linkError: boolea
             <label htmlFor="email">Adresse e-mail
               <input id="email" type="email" required autoComplete="email" autoFocus value={email} onChange={e => setEmail(e.target.value)} />
             </label>
+            {deleted && <p className="note">Ton compte et tes données ont été supprimés. À bientôt peut-être !</p>}
             {error && <div className="error-banner">{error}</div>}
             <button className="btn" type="submit" disabled={state === 'sending'}>{state === 'sending' ? 'Envoi…' : 'Recevoir mon lien de connexion'}</button>
           </form>
         )}
+        <p className="note" style={{ textAlign: 'center' }}><a href="/confidentialite">Confidentialité</a></p>
       </div>
     </div>
   );

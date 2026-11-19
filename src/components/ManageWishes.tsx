@@ -13,6 +13,10 @@ export function AddWish({ person }: { person: Person }) {
   const { d, actions, run } = useHotte();
   const [draft, setDraft] = useState<WishDraft>(emptyDraft);
   const isMe = person.user_id === d.me;
+  // Open while the list is empty; afterwards a button, so the list shows first (on a phone above all).
+  const hasWishes = d.wishesOf(person.id).some(w => !w.removed);
+  const [open, setOpen] = useState(!hasWishes);
+  const title = isMe ? 'Ajouter une envie' : `Ajouter une envie pour ${person.name}`;
 
   const add = () => run(async () => {
     const groups = await actions.addWish(person.id, draft);
@@ -20,12 +24,15 @@ export function AddWish({ person }: { person: Person }) {
     return groups;
   }, groups => groups.length
     ? 'Ajouté, visible par ' + groups.map(g => '« ' + (d.groupById.get(g)?.name ?? '') + ' »').join(' et ')
-    : 'Ajouté dans les envies privées');
+    : 'Ajouté dans les envies privées').then(r => { if (r.ok) setOpen(false); });
 
+  if (!open) {
+    return <div><button className="btn" onClick={() => setOpen(true)}>＋ {title}</button></div>;
+  }
   return (
     <section className="panel">
-      <h2>{isMe ? 'Ajouter une envie' : `Ajouter une envie pour ${person.name}`}</h2>
-      <WishForm draft={draft} onChange={setDraft} onSubmit={add} submitLabel="Ajouter" />
+      <h2>{title}</h2>
+      <WishForm draft={draft} onChange={setDraft} onSubmit={add} submitLabel="Ajouter" onCancel={hasWishes ? () => setOpen(false) : undefined} />
     </section>
   );
 }

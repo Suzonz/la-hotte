@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { isConfigured, SUPABASE_ANON_KEY, SUPABASE_URL } from '@/lib/supabase/env';
 
-const PUBLIC_PATHS = ['/login', '/auth'];
+const PUBLIC_PATHS = ['/login', '/auth', '/confidentialite'];
 
 // Refreshes the Supabase session cookie and sends signed-out visitors to /login.
 export async function middleware(request: NextRequest) {

@@ -8,9 +8,9 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test:db": "node --test tests/rls.test.mjs tests/santa.test.mjs tests/schema.test.mjs",
+    "test:db": "node --test tests/rls.test.mjs tests/santa.test.mjs tests/schema.test.mjs tests/account.test.mjs",
     "test:e2e": "playwright test",
-    "db:start": "supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,storage-api,postgres-meta,supavisor",
+    "db:start": "supabase start -x studio,imgproxy,edge-runtime,logflare,vector,storage-api,postgres-meta,supavisor",
     "db:stop": "supabase stop"
   },
   "dependencies": {

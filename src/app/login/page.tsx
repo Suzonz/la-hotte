@@ -5,8 +5,8 @@ import { safeNext } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; erreur?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; erreur?: string; compte?: string }> }) {
   if (!isConfigured) return <NotConfigured />;
-  const { next, erreur } = await searchParams;
-  return <LoginForm next={safeNext(next)} linkError={erreur === 'lien'} />;
+  const { next, erreur, compte } = await searchParams;
+  return <LoginForm next={safeNext(next)} linkError={erreur === 'lien'} deleted={compte === 'supprime'} />;
 }

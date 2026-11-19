@@ -16,10 +16,10 @@ const STUB = `
   create role authenticated nologin;
 `;
 
-async function build(dir) {
+async function build(dir, only) {
   const db = new PGlite();
   await db.exec(STUB);
-  for (const f of readdirSync(new URL(`../supabase/${dir}/`, import.meta.url)).filter(f => f.endsWith('.sql')).sort()) {
+  for (const f of readdirSync(new URL(`../supabase/${dir}/`, import.meta.url)).filter(f => f.endsWith('.sql') && (!only || f === only)).sort()) {
     await db.exec(readFileSync(new URL(`../supabase/${dir}/${f}`, import.meta.url), 'utf8'));
   }
   return db;
@@ -50,7 +50,8 @@ const QUERIES = {
 };
 
 test('le schéma fusionné est identique aux six fichiers appliqués un par un', async () => {
-  const [steps, squashed] = await Promise.all([build('archive'), build('migrations')]);
+  // Only the consolidated file: later migrations (0002…) are new changes, not part of the archive.
+  const [steps, squashed] = await Promise.all([build('archive'), build('migrations', '0001_schema.sql')]);
   for (const [name, sql] of Object.entries(QUERIES)) {
     const [a, b] = await Promise.all([steps.query(sql), squashed.query(sql)]);
     assert.deepEqual(b.rows, a.rows, `différence dans : ${name}`);

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { HotteProvider, useHotte } from '@/lib/hotte';
+import { AccountPage } from './AccountPage';
 import { AddKidPage, NewGroupPage } from './CreatePages';
 import { GiftsView } from './GiftsView';
 import { GroupView } from './GroupView';
@@ -25,7 +26,8 @@ type View =
   | { kind: 'group'; groupId: string; settings?: boolean }
   | { kind: 'newGroup' }
   | { kind: 'person'; personId: string; groupId?: string }
-  | { kind: 'gifts' };
+  | { kind: 'gifts' }
+  | { kind: 'account' };
 
 function Screens({ openGroup }: { openGroup: string | null }) {
   const { d, data } = useHotte();
@@ -72,7 +74,8 @@ function Screens({ openGroup }: { openGroup: string | null }) {
       ],
     },
     {
-      key: 'groups', label: group ? `Mes groupes · ${group.name}` : 'Mes groupes',
+      // On a phone the group's name stays in the page title, so the tabs fit on one line.
+      key: 'groups', label: group ? <>Mes groupes<span className="hide-sm"> · {group.name}</span></> : 'Mes groupes',
       active: view.kind === 'group' || view.kind === 'newGroup' || (view.kind === 'person' && !!groupId),
       menu: [
         ...d.myGroups.map(g => ({ key: g.id, label: g.name, current: groupId === g.id, onSelect: () => go({ kind: 'group', groupId: g.id }) })),
@@ -101,7 +104,12 @@ function Screens({ openGroup }: { openGroup: string | null }) {
             <PersonView key={person.id + (group?.id ?? '')} person={person} group={group ?? undefined} />
           </>
         )}
+        {view.kind === 'account' && <AccountPage />}
       </main>
+      <footer className="app-footer">
+        <button onClick={() => go({ kind: 'account' })}>Mon compte</button>
+        <a href="/confidentialite">Confidentialité</a>
+      </footer>
     </>
   );
 }

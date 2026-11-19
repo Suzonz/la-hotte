@@ -23,6 +23,8 @@ async function onboard(page: Page, name: string, group?: string) {
 
 /** Adds an envie on « Ma liste », visible by the given groups (or « Seulement moi »). */
 async function addWish(page: Page, title: string, who: string[] | 'private', price?: string) {
+  const opener = page.getByRole('button', { name: /^＋ Ajouter une envie/ });
+  if (await opener.isVisible()) await opener.click();
   const form = page.locator('section', { has: page.getByRole('heading', { name: /^Ajouter une envie/ }) });
   await form.getByLabel('Le cadeau').fill(title);
   if (price) await form.getByLabel('Prix environ (€)').fill(price);
@@ -30,6 +32,7 @@ async function addWish(page: Page, title: string, who: string[] | 'private', pri
   else for (const g of who) await form.getByLabel(g, { exact: true }).check();
   await form.getByRole('button', { name: 'Ajouter' }).click();
   await expect(page.locator('.items .item', { hasText: title })).toBeVisible();
+  await expect(opener).toBeVisible();   // the form folds back once the envie is saved
 }
 
 /** Opens a menu tab (« Ma liste », « Mes groupes ») and picks an entry. */
@@ -153,4 +156,69 @@ test('Secret Santa : tirage au sort, chacun ne voit que sa personne, suivi du ca
   await bob.getByRole('button', { name: 'Annuler' }).first().click();
   await bob.getByRole('button', { name: 'Oui' }).click();
   await expect(status).toHaveValue('progress');   // back to « rien de choisi »
+});
+
+test('en direct : une réservation apparaît chez les autres sans recharger', async ({ browser }) => {
+  const alice = await newPerson(browser, 'live-a');
+  await onboard(alice, 'Alice', 'Famille');
+  await addWish(alice, 'Bougie parfumée', ['Famille']);
+  const path = await inviteLink(alice, 'Famille');
+  const bob = await join(browser, 'live-b', 'Bob', path);
+  const chloe = await join(browser, 'live-c', 'Chloé', path);
+
+  // Chloé is looking at Alice's list…
+  await chloe.getByRole('button', { name: /Alice/ }).click();
+  const candle = chloe.locator('.item', { hasText: 'Bougie parfumée' });
+  await expect(candle.getByText('Libre')).toBeVisible();
+  // …Bob reserves it on his side…
+  await bob.getByRole('button', { name: /Alice/ }).click();
+  await bob.locator('.item', { hasText: 'Bougie parfumée' }).getByRole('button', { name: 'Je l’offre' }).click();
+  // …and Chloé sees it change, without touching anything.
+  await expect(candle.getByText('Déjà pris')).toBeVisible({ timeout: 15_000 });
+});
+
+test('supprimer son compte', async ({ browser }) => {
+  const page = await newPerson(browser, 'adieu');
+  await onboard(page, 'Zoé', 'Amis');
+  await page.getByRole('button', { name: 'Mon compte' }).click();
+  await expect(page.getByRole('heading', { name: 'Supprimer mon compte' })).toBeVisible();
+  const button = page.getByRole('button', { name: 'Supprimer définitivement mon compte' });
+  await expect(button).toBeDisabled();
+  await page.getByLabel(/Pour confirmer, écris SUPPRIMER/).fill('supprimer');
+  await button.click();
+  await expect(page).toHaveURL(/\/login\?compte=supprime/);
+  await expect(page.getByText('Ton compte et tes données ont été supprimés')).toBeVisible();
+});
+
+test('téléphone : captures des écrans principaux', async ({ browser }) => {
+  const phone = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'fr-FR' };
+  const ctxA = await browser.newContext(phone);
+  const alice = await ctxA.newPage();
+  await alice.goto(await signInUrl('tel-a'));
+  await onboard(alice, 'Alice', 'Famille');
+  await addWish(alice, 'Casque audio sans fil avec réduction de bruit', ['Famille'], '89');
+  await addWish(alice, 'Carnet', 'private');
+  await shot(alice, 'm1-ma-liste');
+  await alice.getByRole('button', { name: /Ma liste/ }).click();
+  await shot(alice, 'm2-menu-ouvert');
+  await alice.keyboard.press('Escape');
+  const path = await inviteLink(alice, 'Famille');
+  await shot(alice, 'm3-groupe-reglages');
+
+  const ctxB = await browser.newContext(phone);
+  const bob = await ctxB.newPage();
+  await bob.goto(await signInUrl('tel-b', path));
+  await bob.getByLabel('Ton prénom, tel que les autres te connaissent').fill('Bob');
+  await bob.getByRole('button', { name: 'Rejoindre le groupe' }).click();
+  await bob.getByRole('button', { name: /Alice/ }).click();
+  await bob.locator('.item', { hasText: 'Casque' }).getByRole('button', { name: 'Je participe' }).click();
+  await bob.getByPlaceholder('20').fill('30');
+  await bob.getByRole('button', { name: 'Valider' }).click();
+  await shot(bob, 'm4-liste-d-alice');
+  await bob.getByRole('button', { name: /Ce que j’offre/ }).click();
+  await shot(bob, 'm5-ce-que-j-offre');
+  await bob.getByRole('button', { name: /Mes groupes/ }).click();
+  await bob.getByRole('menuitem', { name: 'Famille' }).click();
+  await bob.getByRole('button', { name: /Faire le tirage avec La Hotte/ }).click();
+  await shot(bob, 'm6-secret-santa-creation');
 });
