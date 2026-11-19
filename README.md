@@ -15,14 +15,19 @@ Listes de Noël partagées. Chacun note ses envies et les range dans des groupes
 - Alertes pour l'acheteur quand l'envie est modifiée ou retirée après son choix.
 - Enfants sans compte, gérés par un parent. Le parent voit les réservations faites pour son enfant.
 - Récapitulatif « À offrir » avec le total.
-- **Secret Santa** par groupe : participants (membres et enfants), budget, exclusions (un couple ne se tire pas entre eux). Le tirage peut être fait **au sort par le serveur** (personne, pas même l'organisateur, ne voit les paires), **saisi par chacun** (tirage sur papier), ou **saisi par l'organisateur**. Chacun ne voit que son tirage jusqu'à la **date de révélation** (par défaut le lendemain de l'échange), puis tout le groupe voit qui offrait à qui.
+- **Secret Santa** par groupe, deux types choisis à la création :
+  - **tirage par La Hotte** : tirage au sort par le serveur, avec exclusions (un couple ne se tire pas entre eux) ; personne, pas même l'organisateur, ne voit les paires ;
+  - **tirage déjà fait** (papiers, autre site) : chacun indique la personne qu'il a tirée ; l'organisateur voit seulement qui ne l'a pas encore fait.
+
+  Chacun ne voit que son tirage jusqu'à la **date de révélation** (par défaut le lendemain de l'échange). Après le tirage, retirer un participant raccroche la chaîne (une seule personne change de destinataire, et elle est prévenue) ; en ajouter un oblige à refaire le tirage. Suivi privé du cadeau : case 🎅 sur ses réservations, statut « en cours » / « complet » dans « Ce que j'offre ».
 
 ## Installation
 
 ### 1. Créer le projet Supabase (gratuit)
 
 1. Crée un compte sur [supabase.com](https://supabase.com), puis un nouveau projet.
-2. **SQL Editor** → colle le contenu de chaque fichier de `supabase/migrations/`, **dans l’ordre** (`0001_init.sql`, puis `0002_secret_santa.sql`…) → **Run** pour chacun.
+2. **SQL Editor** → colle le contenu de `supabase/migrations/0001_schema.sql` → **Run**. C'est le schéma complet.
+   *(Un projet déjà monté avec les six fichiers de `supabase/archive/` est identique : il n'y a rien à refaire.)*
 3. **Authentication → URL Configuration** :
    - *Site URL* : `http://localhost:3123` (puis l'adresse du site en ligne quand il sera déployé) ;
    - *Redirect URLs* : ajoute `http://localhost:3123/auth/callback` (et plus tard `https://ton-site/auth/callback`).
@@ -52,13 +57,27 @@ Ouvre http://localhost:3123.
 2. Ajoute les deux variables `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 3. Dans Supabase, mets l'adresse Vercel dans *Site URL* et `https://…/auth/callback` dans *Redirect URLs*.
 
+## Développer et tester en local, sans e-mail
+
+Une copie locale de Supabase (il faut Docker) permet de tout tester avec de faux comptes :
+
+```bash
+npm run db:start    # Supabase local sur les ports 553xx (base, connexion, boîte mail de test)
+npm run test:e2e    # tests d'interface : 3 faux comptes, invitation, réservation, Secret Santa
+npm run db:stop
+```
+
+Les tests d'interface lancent leur propre serveur (port 3124) relié à la base locale ; ils ne touchent jamais au vrai projet. Ils enregistrent aussi des captures des écrans principaux dans `test-results/screens/`.
+
 ## Tests
 
 ```bash
-npm run test:db     # règles de confidentialité, sur un vrai Postgres local (PGlite)
+npm run test:db     # règles de confidentialité, sur un vrai Postgres local (PGlite), sans Docker
+npm run test:e2e    # tests d'interface (Playwright), avec Supabase local
 npm run typecheck
-npm run build
 ```
+
+`tests/schema.test.mjs` vérifie que le schéma fusionné donne exactement la même base que les six fichiers d'origine.
 
 `tests/rls.test.mjs` simule quatre personnes et deux groupes, et vérifie entre autres :
 - personne ne voit les réservations faites pour soi, mais un parent voit celles faites pour son enfant ;
@@ -70,10 +89,13 @@ npm run build
 ## Organisation du code
 
 ```
-supabase/migrations/   schéma + règles de sécurité (la référence)
+supabase/migrations/   schéma complet + règles de sécurité (la référence)
+supabase/archive/      les six étapes du développement, gardées pour l'historique
 src/app/               pages : accueil, /login, /auth/callback, /rejoindre/[code]
 src/lib/hotte.tsx      chargement des données, calculs, toutes les actions
-src/components/        écrans : MyWishes, GroupsPanel, ManageWishes, PersonView, WishCard, GiftsView…
+src/components/        écrans : ListPage, ManageWishes, GroupView, GroupSettings, PersonView, WishCard, GiftsView…
+src/components/santa/  Secret Santa : encadré du groupe, création, carte, participants, suivi des cadeaux
+tests/                 règles de la base (PGlite) et tests d'interface (tests/e2e, Playwright)
 src/middleware.ts      session et redirection vers /login
 ```
 

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useHotte } from '@/lib/hotte';
 import { eur, parseAmount } from '@/lib/format';
 import type { Group, Person } from '@/lib/types';
-import { CompleteOrContinue, SantaGiftToggle } from './SantaGifts';
+import { CompleteOrContinue, SantaGiftToggle } from './santa/SantaGifts';
 import { WishCard } from './WishCard';
 
 /**

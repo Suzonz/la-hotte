@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useHotte } from '@/lib/hotte';
 import { eur, parseAmount } from '@/lib/format';
 import type { Claim, Person, Wish } from '@/lib/types';
-import { SantaGiftToggle } from './SantaGifts';
+import { SantaGiftToggle } from './santa/SantaGifts';
 import { WishBody } from './WishBody';
 
 /** Someone else's envie (or my child's), with its reservations and my actions. */

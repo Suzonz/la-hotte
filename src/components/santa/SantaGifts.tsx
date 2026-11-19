@@ -4,10 +4,9 @@ import { useState } from 'react';
 import { useHotte } from '@/lib/hotte';
 import { eur } from '@/lib/format';
 import type { Claim } from '@/lib/types';
-import { Modal } from './Modal';
+import { Modal } from '../Modal';
+import { frDay } from './shared';
 
-const dayFmt = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' });
-const frDay = (d: string) => dayFmt.format(new Date(d.length === 10 ? d + 'T00:00:00' : d));
 
 /**
  * Under one of MY reservations: « 🎅 Pour mon Secret Santa » for each Secret Santa
@@ -16,22 +15,30 @@ const frDay = (d: string) => dayFmt.format(new Date(d.length === 10 ? d + 'T00:0
 export function SantaGiftToggle({ claim }: { claim: Claim }) {
   const { d, actions, run } = useHotte();
   const [asking, setAsking] = useState<null | { santaId: string; giverId: string; receiver: string }>(null);
+  // The box follows the click at once; the saved value takes over when the server has answered.
+  const [pending, setPending] = useState<Record<string, boolean>>({});
   const draws = d.myDraws.filter(x => x.pair.receiver_id === claim.recipient_id && !d.isRevealed(x.santa));
   if (claim.claimer_id !== d.me || !draws.length) return null;
+
+  const settle = (santaId: string) => setPending(p => { const { [santaId]: _, ...rest } = p; return rest; });
 
   return (
     <>
       {draws.map(({ pair, santa }) => {
-        const on = d.isSantaGift(claim.id, santa.id);
+        const on = pending[santa.id] ?? d.isSantaGift(claim.id, santa.id);
         const giver = d.personById.get(pair.giver_id);
         const forKid = giver && giver.user_id !== d.me ? ` de ${giver.name}` : '';
         return (
           <label key={santa.id} className="santa-tick">
             <input type="checkbox" checked={on} onChange={e => {
-              if (e.target.checked) {
-                run(() => actions.tagSantaGift(claim.id, santa.id, pair.giver_id))
-                  .then(r => r.ok && setAsking({ santaId: santa.id, giverId: pair.giver_id, receiver: d.personById.get(pair.receiver_id)?.name ?? '' }));
-              } else run(() => actions.untagSantaGift(claim.id, santa.id), 'Retiré du Secret Santa');
+              const want = e.target.checked;
+              setPending(p => ({ ...p, [santa.id]: want }));
+              if (want) {
+                run(() => actions.tagSantaGift(claim.id, santa.id, pair.giver_id)).then(r => {
+                  settle(santa.id);
+                  if (r.ok) setAsking({ santaId: santa.id, giverId: pair.giver_id, receiver: d.personById.get(pair.receiver_id)?.name ?? '' });
+                });
+              } else run(() => actions.untagSantaGift(claim.id, santa.id), 'Retiré du Secret Santa').then(() => settle(santa.id));
             }} />
             🎅 Pour mon Secret Santa{forKid} <span className="who">({santa.name})</span>
           </label>

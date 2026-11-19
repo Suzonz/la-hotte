@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useHotte } from '@/lib/hotte';
 import { byName, eur, hostOf } from '@/lib/format';
 import type { Claim } from '@/lib/types';
-import { SantaTracker } from './SantaGifts';
+import { SantaTracker } from './santa/SantaGifts';
 
 type Sort = 'person' | 'group';
 

@@ -108,11 +108,11 @@ function OwnWishList({ wishes }: { wishes: Wish[] }) {
                 </>
               ) : (
                 <>
-                  <button className="btn ghost sm" onClick={() => {
+                  <button className="link-btn" onClick={() => {
                     setEdit({ title: w.title, link: w.link ?? '', price: w.price != null ? String(w.price) : '', stars: w.stars, note: w.note, groups, privateOnly: groups.length === 0 });
                     setEditing(w.id);
                   }}>Modifier</button>
-                  <button className="btn ghost sm" onClick={() => setConfirmDel(w.id)}>Retirer</button>
+                  <button className="link-btn" onClick={() => setConfirmDel(w.id)}>Retirer</button>
                 </>
               )}
             </div>

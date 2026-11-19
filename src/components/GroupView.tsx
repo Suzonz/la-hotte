@@ -5,7 +5,7 @@ import { useHotte } from '@/lib/hotte';
 import { byName, plural } from '@/lib/format';
 import type { Group, Person } from '@/lib/types';
 import { GroupDetail } from './GroupSettings';
-import { SantaSection } from './SantaSection';
+import { SantaSection } from './santa/SantaSection';
 
 /** A group's page: who is in it (and their children), with a way into each person's envies. */
 export function GroupView({ group, initialSettings, onOpenPerson, onOpenMine }: {
