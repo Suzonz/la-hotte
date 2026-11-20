@@ -88,7 +88,7 @@ test('supprimer son compte : l’enfant reste avec l’autre parent', async () =
   assert.equal(leo[0].manager_id, U.mum);
 });
 
-test('« Reçu » : plus réservable ; « Préparer l’année prochaine » range tout', async () => {
+test('« Reçu » : plus réservable ; supprimé automatiquement au bout d’un mois', async () => {
   const w = (await rows('mum', "insert into wishes (person_id, title) values ($1, 'Plaid') returning id", [ids.mum]))[0].id;
   await rows('mum', 'insert into wish_groups values ($1, $2)', [w, ids.fam]);
   const kept = (await rows('mum', "insert into wishes (person_id, title) values ($1, 'Livre') returning id", [ids.mum]))[0].id;
@@ -107,11 +107,38 @@ test('« Reçu » : plus réservable ; « Préparer l’année prochaine » rang
   await rows('mum', 'update claims set offered_at = null where id = $1', [c]);
   assert.ok(!!(await rows('aunt', 'select offered_at from claims where id = $1', [c]))[0].offered_at, 'personne d’autre ne le change');
 
-  const r1 = (await rows('mum', 'select new_season() as r'))[0].r;
-  assert.equal(r1.wishes, 1);
-  assert.equal((await admin('select removed from wishes where id = $1', [w]))[0].removed, true, 'l’envie reçue quitte la liste');
+  // Automatic cleanup: nothing goes before a month…
+  assert.ok(await fails('mum', 'select cleanup_finished()'), 'seul le serveur fait le ménage');
+  assert.deepEqual((await admin('select cleanup_finished() as r'))[0].r, { wishes: 0, claims: 0 }, 'rien avant un mois');
+  // …and everything goes after, really deleted (not just hidden).
+  await admin("update wishes set received_at = now() - interval '40 days' where id = $1", [w]);
+  await admin("update claims set offered_at = now() - interval '40 days' where id = $1", [c]);
+  assert.deepEqual((await admin('select cleanup_finished() as r'))[0].r, { wishes: 1, claims: 1 });
+  assert.equal((await admin('select * from wishes where id = $1', [w])).length, 0, 'l’envie reçue est effacée');
   assert.equal((await admin('select removed from wishes where id = $1', [kept]))[0].removed, false, 'les autres restent');
-  const r2 = (await rows('aunt', 'select new_season() as r'))[0].r;
-  assert.equal(r2.claims, 1);
   assert.equal((await admin('select * from claims where id = $1', [c])).length, 0, 'le cadeau offert quitte « Ce que j’offre »');
+  assert.equal((await admin("select * from notifications where kind = 'wish_removed'")).length, 0, 'pas d’alerte « retirée » pour un cadeau reçu');
+});
+
+test('ménage : offert mais jamais coché « Reçu », et envies supprimées', async () => {
+  // Aunt gave the « Écharpe » 40 days ago; Mum never ticked « Reçu ».
+  const w = (await rows('mum', "insert into wishes (person_id, title) values ($1, 'Écharpe') returning id", [ids.mum]))[0].id;
+  await rows('mum', 'insert into wish_groups values ($1, $2)', [w, ids.fam]);
+  const c = (await rows('aunt', "insert into claims (recipient_id, wish_id, kind) values ($1, $2, 'buy') returning id", [ids.mum, w]))[0].id;
+  await admin("update claims set offered_at = now() - interval '40 days' where id = $1", [c]);
+  await admin('select cleanup_finished()');
+  assert.equal((await admin('select * from claims where id = $1', [c])).length, 0, 'le cadeau quitte « Ce que j’offre »');
+  assert.ok((await admin('select received_at from wishes where id = $1', [w]))[0].received_at, 'l’envie compte comme reçue');
+  assert.ok(await fails('other', "insert into claims (recipient_id, wish_id, kind) values ($1, $2, 'buy')", [ids.mum, w]), 'elle n’est plus réservable');
+
+  // A deleted envie stays only while someone still has it in « Ce que j'offre ».
+  const gone = (await rows('mum', "insert into wishes (person_id, title) values ($1, 'Vase') returning id", [ids.mum]))[0].id;
+  await rows('mum', 'insert into wish_groups values ($1, $2)', [gone, ids.fam]);
+  const k = (await rows('aunt', "insert into claims (recipient_id, wish_id, kind) values ($1, $2, 'buy') returning id", [ids.mum, gone]))[0].id;
+  await rows('mum', 'update wishes set removed = true where id = $1', [gone]);
+  await admin('select cleanup_finished()');
+  assert.equal((await admin('select * from wishes where id = $1', [gone])).length, 1, 'gardée : la tante doit voir qu’elle est retirée');
+  await rows('aunt', 'delete from claims where id = $1', [k]);
+  await admin('select cleanup_finished()');
+  assert.equal((await admin('select * from wishes where id = $1', [gone])).length, 0, 'effacée dès que plus personne ne l’a');
 });

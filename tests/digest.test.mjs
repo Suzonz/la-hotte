@@ -67,6 +67,7 @@ test('une envie choisie puis modifiée ou retirée : seul celui qui l’a choisi
   await rows('bob', "update wishes set note = 'rouge' where id = $1", [w]);
   await rows('bob', 'update wishes set received_at = now() where id = $1', [w]);   // not a change worth an e-mail
   assert.deepEqual((await admin('select kind from notifications where user_id = $1', [U.alice])).map(n => n.kind), ['wish_changed']);
+  await rows('bob', 'update wishes set received_at = null where id = $1', [w]);   // a received envie leaving is not « retirée »
   await rows('bob', 'update wishes set removed = true where id = $1', [w]);
   assert.deepEqual((await admin('select kind from notifications where user_id = $1 order by kind', [U.alice])).map(n => n.kind), ['wish_changed', 'wish_removed']);
 });

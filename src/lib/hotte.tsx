@@ -230,11 +230,6 @@ function makeActions(get: () => { me: string; d: Derived }) {
     async setOffered(claimId: string, offered: boolean) {
       must(await sb.from('claims').update({ offered_at: offered ? new Date().toISOString() : null }).eq('id', claimId));
     },
-    async newSeason() {
-      const { data } = must(await sb.rpc('new_season'));
-      return data as { wishes: number; claims: number };
-    },
-
     async renamePerson(personId: string, name: string) {
       must(await sb.from('persons').update({ name: name.trim() }).eq('id', personId));
     },

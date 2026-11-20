@@ -1,11 +1,15 @@
 import { eur, hostOf, WANT_LABEL, wantStars } from '@/lib/format';
 import type { Wish } from '@/lib/types';
 
-export function WishBody({ wish, extra }: { wish: Wish; extra?: React.ReactNode }) {
+/** An envie's name, price, level and details. `tools` sit right after the name (✏️ 🗑️). */
+export function WishBody({ wish, extra, tools }: { wish: Wish; extra?: React.ReactNode; tools?: React.ReactNode }) {
   return (
     <>
       <div className="ihead">
-        <h3 className="ititle">{wish.title}</h3>
+        <span className="ititle-row">
+          <h3 className="ititle">{wish.title}</h3>
+          {tools}
+        </span>
         {wish.price != null && <span className="price">{eur(wish.price)}</span>}
       </div>
       <div className="meta">

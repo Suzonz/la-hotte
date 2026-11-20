@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useHotte } from '@/lib/hotte';
 import { byName } from '@/lib/format';
 import type { Group } from '@/lib/types';
+import { Modal } from './Modal';
 
 /** A group's settings: members, invite link, adding people, rename, leave, delete. */
 export function GroupDetail({ group: g, onClosed }: { group: Group; onClosed: () => void }) {
@@ -57,13 +58,7 @@ export function GroupDetail({ group: g, onClosed }: { group: Group; onClosed: ()
             <li key={m.user_id}>
               <span>{nameOf(m.user_id)}{m.user_id === g.created_by && <span className="who"> · créateur</span>}</span>
               {canRemove(m.user_id, m.added_by) && (
-                typeof confirm === 'object' && confirm?.remove === m.user_id ? (
-                  <span className="row">
-                    <span className="who">Retirer du groupe ?</span>
-                    <button className="btn danger sm" onClick={() => run(() => actions.removeMember(g.id, m.user_id), `${nameOf(m.user_id)} a été retiré(e) du groupe`).then(() => setConfirm(null))}>Retirer</button>
-                    <button className="btn ghost sm" onClick={() => setConfirm(null)}>Annuler</button>
-                  </span>
-                ) : <button className="btn ghost sm" onClick={() => setConfirm({ remove: m.user_id })}>Retirer</button>
+                <button className="btn ghost sm" onClick={() => setConfirm({ remove: m.user_id })}>Retirer</button>
               )}
             </li>
           ))}
@@ -80,13 +75,7 @@ export function GroupDetail({ group: g, onClosed }: { group: Group; onClosed: ()
           <button className="btn sm" type="button" onClick={copy}>Copier le lien</button>
         </div>
         <p className="note">Envoie ce lien par message ou par e-mail. En l’ouvrant, la personne se connecte avec son adresse e-mail et rejoint le groupe.</p>
-        {isCreator && (confirm === 'relink' ? (
-          <div className="row">
-            <span className="who">Changer le lien ? L’ancien ne marchera plus (les membres actuels restent).</span>
-            <button className="btn danger sm" onClick={() => run(() => actions.regenerateInvite(g.id), 'Nouveau lien créé').then(() => setConfirm(null))}>Changer</button>
-            <button className="btn ghost sm" onClick={() => setConfirm(null)}>Annuler</button>
-          </div>
-        ) : <div><button className="linkish" onClick={() => setConfirm('relink')}>Changer le lien d’invitation</button></div>)}
+        {isCreator && <div><button className="linkish" onClick={() => setConfirm('relink')}>Changer le lien d’invitation</button></div>}
       </div>
 
       <div className="stack" style={{ alignItems: 'stretch' }}>
@@ -114,25 +103,33 @@ export function GroupDetail({ group: g, onClosed }: { group: Group; onClosed: ()
       </div>
 
       <div className="row">
-        {confirm === 'leave' ? (
-          <>
-            <span className="who">Quitter « {g.name} » ? Ses membres ne verront plus tes envies rangées dans ce groupe.</span>
-            <button className="btn danger sm" onClick={() => run(() => actions.leaveGroup(g.id), `Tu as quitté « ${g.name} »`).then(r => r.ok && onClosed())}>Quitter</button>
-            <button className="btn ghost sm" onClick={() => setConfirm(null)}>Rester</button>
-          </>
-        ) : confirm === 'delete' ? (
-          <>
-            <span className="who">Supprimer « {g.name} » pour tout le monde ? Les envies rangées seulement dans ce groupe ne seront plus visibles.</span>
-            <button className="btn danger sm" onClick={() => run(() => actions.deleteGroup(g.id), 'Groupe supprimé').then(r => r.ok && onClosed())}>Supprimer</button>
-            <button className="btn ghost sm" onClick={() => setConfirm(null)}>Garder</button>
-          </>
-        ) : (
-          <>
-            <button className="btn ghost sm" onClick={() => setConfirm('leave')}>Quitter le groupe</button>
-            {isCreator && <button className="btn ghost sm" onClick={() => setConfirm('delete')}>Supprimer le groupe</button>}
-          </>
-        )}
+        <button className="btn ghost sm" onClick={() => setConfirm('leave')}>Quitter le groupe</button>
+        {isCreator && <button className="btn ghost sm" onClick={() => setConfirm('delete')}>Supprimer le groupe</button>}
       </div>
+
+      {confirm && (() => {
+        const close = () => setConfirm(null);
+        const c = confirm === 'leave'
+          ? { title: `Quitter « ${g.name} » ?`, text: 'Ses membres ne verront plus tes envies rangées dans ce groupe.', label: 'Quitter',
+              go: () => run(() => actions.leaveGroup(g.id), `Tu as quitté « ${g.name} »`).then(r => r.ok && onClosed()) }
+          : confirm === 'delete'
+          ? { title: `Supprimer « ${g.name} » ?`, text: 'Le groupe disparaît pour tout le monde. Les envies rangées seulement dans ce groupe ne seront plus visibles.', label: 'Supprimer',
+              go: () => run(() => actions.deleteGroup(g.id), 'Groupe supprimé').then(r => r.ok && onClosed()) }
+          : confirm === 'relink'
+          ? { title: 'Changer le lien d’invitation ?', text: 'L’ancien lien ne marchera plus. Les membres actuels restent.', label: 'Changer le lien',
+              go: () => run(() => actions.regenerateInvite(g.id), 'Nouveau lien créé').then(close) }
+          : { title: `Retirer ${nameOf(confirm.remove)} du groupe ?`, text: 'Cette personne ne verra plus les envies du groupe.', label: 'Retirer',
+              go: () => run(() => actions.removeMember(g.id, confirm.remove), `${nameOf(confirm.remove)} a été retiré(e) du groupe`).then(close) };
+        return (
+          <Modal title={c.title} onClose={close}>
+            <p className="note">{c.text}</p>
+            <div className="row modal-actions">
+              <button className="btn ghost" onClick={close}>Annuler</button>
+              <button className="btn danger" onClick={() => c.go()}>{c.label}</button>
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }

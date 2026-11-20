@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { useHotte } from '@/lib/hotte';
 import type { Person } from '@/lib/types';
 import { AddWish, WishList } from './ManageWishes';
-import { NewSeason } from './NewSeason';
 import { WishCard } from './WishCard';
+import { Modal } from './Modal';
 
 /** The parents of a child: all equal, each can add the other or take them off. */
 function KidParents({ kid }: { kid: Person }) {
@@ -98,19 +98,21 @@ export function ListPage({ person, onDeleted }: { person: Person; onDeleted: () 
 
       {!isMe && <KidParents kid={person} />}
 
-      {isMe && <NewSeason />}
 
       {isMe
-        ? <p className="note">Si tu retires une envie que quelqu’un avait déjà prise, cette personne est prévenue. Toi, tu ne le sauras pas.</p>
+        ? <p className="note">Si tu supprimes une envie que quelqu’un avait déjà prise, cette personne est prévenue. Toi, tu ne le sauras pas.</p>
         : (
           <div className="row">
-            {confirmDelete ? (
-              <>
-                <span className="who">Supprimer la liste de {person.name} et toutes ses envies ?</span>
-                <button className="btn danger sm" onClick={() => run(() => actions.removeKid(person.id), `Liste de ${person.name} supprimée`).then(r => r.ok && onDeleted())}>Supprimer</button>
-                <button className="btn ghost sm" onClick={() => setConfirmDelete(false)}>Garder</button>
-              </>
-            ) : <button className="btn ghost sm" onClick={() => setConfirmDelete(true)}>Supprimer la liste de {person.name}</button>}
+            <button className="btn ghost sm" onClick={() => setConfirmDelete(true)}>Supprimer la liste de {person.name}</button>
+            {confirmDelete && (
+              <Modal title={`Supprimer la liste de ${person.name} ?`} onClose={() => setConfirmDelete(false)}>
+                <p className="note">Toutes ses envies sont effacées définitivement.</p>
+                <div className="row modal-actions">
+                  <button className="btn ghost" onClick={() => setConfirmDelete(false)}>Annuler</button>
+                  <button className="btn danger" onClick={() => run(() => actions.removeKid(person.id), `Liste de ${person.name} supprimée`).then(r => r.ok && onDeleted())}>Supprimer</button>
+                </div>
+              </Modal>
+            )}
           </div>
         )}
     </>

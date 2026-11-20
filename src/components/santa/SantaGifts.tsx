@@ -56,7 +56,7 @@ export function CompleteOrContinue({ santaId, giverId, receiver, onClose }: { sa
   return (
     <Modal title={`🎅 Ajouté à ton Secret Santa pour ${receiver}`} onClose={onClose}>
       <ul className="plain-list">{gifts.map(c => <li key={c.id}>{titleOf(c)}{c.amount ? ` · ${eur(c.amount)}` : ''}</li>)}</ul>
-      <p>C’est tout pour {receiver}, ou tu cherches d’autres cadeaux ?</p>
+      <p>C’est tout pour {receiver}, ou tu cherches d’autres cadeaux pour le Secret Santa ?</p>
       <div className="row">
         <button className="btn" onClick={() => run(() => actions.setSantaDone(santaId, giverId, true), '✅ Secret Santa complet').then(onClose)}>✅ C’est complet</button>
         <button className="btn ghost" onClick={() => run(() => actions.setSantaDone(santaId, giverId, false)).then(onClose)}>Je continue</button>

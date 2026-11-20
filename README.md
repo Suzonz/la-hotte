@@ -4,7 +4,7 @@ Listes de Noël partagées. Chacun note ses envies et les range dans des groupes
 
 - **Next.js 15** (App Router, TypeScript) pour l'interface.
 - **Supabase** pour la base Postgres et la connexion par lien magique envoyé par e-mail.
-- **Confidentialité garantie côté serveur.** Les règles Row Level Security de Postgres ([supabase/migrations/0001_init.sql](supabase/migrations/0001_init.sql)) décident ce que chaque personne reçoit. Une réservation faite pour toi n'arrive jamais dans ton navigateur, même en fouillant le réseau.
+- **Confidentialité garantie côté serveur.** Les règles Row Level Security de Postgres ([supabase/migrations/0001_schema.sql](supabase/migrations/0001_schema.sql)) décident ce que chaque personne reçoit. Une réservation faite pour toi n'arrive jamais dans ton navigateur, même en fouillant le réseau.
 
 ## Fonctionnalités
 
@@ -15,7 +15,7 @@ Listes de Noël partagées. Chacun note ses envies et les range dans des groupes
 - Alertes pour l'acheteur quand l'envie est modifiée ou retirée après son choix.
 - Enfants sans compte, gérés par **un ou plusieurs parents**, tous égaux. Les parents voient les réservations faites pour leur enfant.
 - « Ce que j'offre » : tout ce qu'on offre au même endroit, trié par personne ou par groupe, avec « Offert ✓ ».
-- Après la fête : « Reçu ✓ » sur ses envies, puis « Préparer l'année prochaine » range tout.
+- Après la fête : case « Reçu » sur ses envies et « Offert » sur ses cadeaux ; ils descendent en bas de la page, puis sont effacés de la base au bout d’un mois.
 - **Mises à jour en direct** : une réservation apparaît chez les autres sans recharger.
 - **Récapitulatif par e-mail**, au plus un par jour, désactivable.
 - « Mon compte » : supprimer son compte et ses données ; page « Confidentialité ».
@@ -27,52 +27,51 @@ Listes de Noël partagées. Chacun note ses envies et les range dans des groupes
 
 ## Installation
 
-### 1. Créer le projet Supabase (gratuit)
+### 1. Créer le projet Supabase (gratuit) : la checklist complète
 
-1. Crée un compte sur [supabase.com](https://supabase.com), puis un nouveau projet.
-2. **SQL Editor** → colle le contenu de `supabase/migrations/0001_schema.sql` → **Run**. C'est le schéma complet.
-   *(Un projet déjà monté avec les six fichiers de `supabase/archive/` est identique : il n'y a rien à refaire.)*
-3. **Authentication → URL Configuration** :
-   - *Site URL* : `http://localhost:3123` (puis l'adresse du site en ligne quand il sera déployé) ;
-   - *Redirect URLs* : ajoute `http://localhost:3123/auth/callback` (et plus tard `https://ton-site/auth/callback`).
-4. **Pour développer, c'est tout.** Avec l'e-mail par défaut de Supabase, le lien de connexion s'ouvre **dans le même navigateur** que celui où il a été demandé.
+Coche dans l'ordre. Tout se fait dans le tableau de bord de [supabase.com](https://supabase.com).
 
-5. **Pour un vrai usage** : le service d'e-mail intégré à Supabase n'envoie que quelques e-mails par heure, et il ne permet pas de modifier les e-mails. Branche un fournisseur d'e-mails (Resend, Brevo…) dans *Authentication → Emails → SMTP Settings*, puis, dans *Emails → Magic link or OTP*, remplace le lien du modèle par :
-   ```
-   {{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email
-   ```
-   (`{{ .RedirectTo }}` vaut déjà `…/auth/callback?next=…`, que l'appli envoie pour ramener un invité vers son groupe.)
-   Le lien marche alors sur n'importe quel appareil (demandé sur l'ordinateur, ouvert sur le téléphone).
-   Profites-en pour remplacer l'expéditeur « Supabase Auth » par **La Hotte** (*SMTP Settings → Sender name*) et pour écrire l'objet et le texte de l'e-mail en français : sans ça, les invités ne comprennent pas d'où vient l'e-mail.
+**La base**
 
-### Mettre à jour un projet existant
+- [ ] Crée un nouveau projet (région : Europe).
+- [ ] **SQL Editor** → colle **tout** `supabase/migrations/0001_schema.sql` → **Run**. C'est le seul fichier à exécuter. L'avertissement « destructive operations » est normal.
+- [ ] **Database → Extensions** : vérifie que `pg_cron` et `pg_net` sont activées (le fichier les active s'il peut). Sans elles, ni ménage automatique ni récapitulatif par e-mail.
 
-Chaque nouveauté de la base est un fichier de `supabase/migrations/`, numéroté. Dans **SQL Editor**, exécute **dans l'ordre** ceux que ton projet n'a pas encore eus, une seule fois chacun :
+**La connexion**
 
-| Fichier | Ce qu'il apporte |
-|---|---|
-| `0001_schema.sql` | Le schéma complet (listes, groupes, réservations, Secret Santa) |
-| `0002_realtime_and_account.sql` | Mises à jour en direct, suppression de son compte |
-| `0003_coparents_and_after_christmas.sql` | Deux parents pour un enfant, « Reçu », « Offert », nouvelle année |
-| `0004_email_digest.sql` | Le récapitulatif quotidien par e-mail (à activer, voir ci-dessous) |
+- [ ] **Authentication → URL Configuration** :
+  - *Site URL* : l'adresse du site (`http://localhost:3123` tant qu'il n'est pas en ligne) ;
+  - *Redirect URLs* : `http://localhost:3123/auth/callback` **et** `https://adresse-du-site/auth/callback`.
+- [ ] **Authentication → Emails → SMTP Settings** : branche Brevo (le service intégré de Supabase n'envoie que quelques e-mails par heure).
+  - Hôte `smtp-relay.brevo.com`, port `587`, identifiant et clé SMTP donnés par Brevo (*SMTP et API*) ;
+  - *Sender email* : une adresse validée dans Brevo ; *Sender name* : **La Hotte**.
+- [ ] **Authentication → Emails → Magic link or OTP** : objet et texte en français, et ce lien à la place de celui du modèle :
+  ```
+  {{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email
+  ```
+  (`{{ .RedirectTo }}` vaut déjà `…/auth/callback?next=…`.) Le lien marche alors sur n'importe quel appareil, même si on l'ouvre sur le téléphone après l'avoir demandé sur l'ordinateur.
 
-L'avertissement « destructive operations » de Supabase est normal : ces fichiers ajoutent des choses, ils n'effacent pas tes données.
+**Le récapitulatif par e-mail** (facultatif)
 
-### Activer le récapitulatif par e-mail (facultatif)
+Un e-mail par jour au plus, vers 8 h (heure de Paris en hiver), seulement à ceux qui ont des nouvelles et ne l'ont pas désactivé dans « Mon compte ». Il ne dévoile jamais une surprise.
 
-Un e-mail par jour au plus, envoyé chaque matin vers 8 h (heure de Paris en hiver) par Brevo, seulement à ceux qui ont des nouvelles et ne l'ont pas désactivé dans « Mon compte ». Il ne dévoile jamais une surprise.
-
-1. **Brevo → SMTP et API → onglet « Clés API » → Générer une nouvelle clé API.** C'est une clé différente de la clé SMTP ; copie-la.
-2. **Supabase → SQL Editor**, en remplaçant les trois valeurs :
-   ```sql
-   select vault.create_secret('xkeysib-ta-cle-api', 'brevo_api_key');
-   select vault.create_secret('adresse.validee@dans-brevo.fr', 'la_hotte_sender');
-   select vault.create_secret('https://adresse-du-site', 'la_hotte_site_url');
-   ```
-   Les secrets sont chiffrés par Supabase (Vault) : ils ne sont pas dans le code.
-3. Pour essayer tout de suite plutôt que d'attendre le lendemain matin : `select public.send_digests();` (le résultat est le nombre d'e-mails envoyés).
+- [ ] **Brevo → SMTP et API → Clés API → Générer une nouvelle clé API** (ce n'est pas la clé SMTP).
+- [ ] **SQL Editor**, en remplaçant les trois valeurs :
+  ```sql
+  select vault.create_secret('xkeysib-ta-cle-api', 'brevo_api_key');
+  select vault.create_secret('adresse.validee@dans-brevo.fr', 'la_hotte_sender');
+  select vault.create_secret('https://adresse-du-site', 'la_hotte_site_url');
+  ```
+  Les secrets sont chiffrés par Supabase (Vault) : ils ne sont pas dans le code.
+- [ ] Pour essayer tout de suite : `select public.send_digests();` (le résultat est le nombre d'e-mails envoyés).
 
 Pour changer une valeur plus tard : `select vault.update_secret((select id from vault.secrets where name = 'brevo_api_key'), 'nouvelle-cle');`
+
+**L'appli**
+
+- [ ] **Project Settings → API** : copie l'URL du projet et la clé publique (*anon* / *publishable*) dans `.env.local` (et dans Vercel, voir plus bas). Jamais la clé secrète (*service_role* / *secret*).
+
+*Un projet plus ancien, déjà monté avec les fichiers 0001 à 0004 d'avant : exécute seulement `supabase/archive/0010_auto_cleanup.sql`.*
 
 ### 2. Lancer l'appli
 
@@ -110,7 +109,7 @@ npm run test:e2e    # tests d'interface (Playwright), avec Supabase local
 npm run typecheck
 ```
 
-`tests/schema.test.mjs` vérifie que le schéma fusionné donne exactement la même base que les six fichiers d'origine.
+`tests/schema.test.mjs` vérifie que le schéma unique donne exactement la même base que les dix fichiers d’origine.
 
 `tests/rls.test.mjs` simule quatre personnes et deux groupes, et vérifie entre autres :
 - personne ne voit les réservations faites pour soi, mais un parent voit celles faites pour son enfant ;
@@ -122,8 +121,8 @@ npm run typecheck
 ## Organisation du code
 
 ```
-supabase/migrations/   schéma complet + règles de sécurité (la référence)
-supabase/archive/      les six étapes du développement, gardées pour l'historique
+supabase/migrations/   le schéma complet, en un seul fichier (la référence)
+supabase/archive/      les dix étapes du développement, gardées pour l’historique
 src/app/               pages : accueil, /login, /auth/callback, /rejoindre/[code]
 src/lib/hotte.tsx      chargement des données, calculs, toutes les actions
 src/components/        écrans : ListPage, ManageWishes, GroupView, GroupSettings, PersonView, WishCard, GiftsView…
@@ -142,5 +141,5 @@ src/middleware.ts      session et redirection vers /login
 
 ## Limites connues
 
-- Les anniversaires (une liste par occasion, avec sa date) ne sont pas encore prévus : on réutilise la même liste d'une fête à l'autre, avec « Préparer l'année prochaine ».
+- Les anniversaires (une liste par occasion, avec sa date) ne sont pas encore prévus : on réutilise la même liste d'une fête à l'autre.
 - Le récapitulatif par e-mail part à heure fixe en UTC : 8 h à Paris en hiver, 9 h en été.

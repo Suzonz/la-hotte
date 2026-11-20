@@ -5,6 +5,7 @@ import { useHotte } from '@/lib/hotte';
 import { emptyDraft, type Person, type Wish, type WishDraft } from '@/lib/types';
 import { WishBody } from './WishBody';
 import { WishForm } from './WishForm';
+import { Modal } from './Modal';
 
 const byWant = (a: Wish, b: Wish) => b.stars - a.stars;
 
@@ -87,24 +88,42 @@ export function WishList({ person }: { person: Person }) {
   );
 }
 
-/** « Reçus » : folded away; an envie marked by mistake can go back to the list. */
+/** A « Reçu » box follows the click at once; if saving fails, it goes back. */
+function undoIfFailed(box: HTMLInputElement, done: Promise<{ ok: boolean }>) {
+  done.then(r => { if (!r.ok && box.isConnected) box.checked = !box.checked; });
+}
+
+/** « Cadeaux reçus », under the list. Unticking one sends it back to the list. */
 function ReceivedList({ wishes }: { wishes: Wish[] }) {
-  const { actions, run } = useHotte();
+  const { d, actions, run } = useHotte();
   if (!wishes.length) return null;
   return (
-    <details className="received">
-      <summary>🎁 Reçus ({wishes.length})</summary>
+    <section className="received">
+      <h2>Cadeaux reçus ({wishes.length})</h2>
       <ul className="items">
-        {wishes.map(w => (
-          <li key={w.id} className="item">
-            <span className="row" style={{ justifyContent: 'space-between' }}>
-              <span>{w.title}</span>
-              <button className="link-btn" onClick={() => run(() => actions.setReceived(w.id, false), `« ${w.title} » est de retour dans ta liste`)}>Remettre dans ma liste</button>
+        {wishes.map(w => {
+          const groups = d.groupsOfWish(w.id).filter(g => d.myGroupIds.includes(g));
+          const tags = (
+            <span className="tags">
+              {groups.length
+                ? groups.map(g => <span key={g} className="chip free">{d.groupById.get(g)?.name}</span>)
+                : <span className="chip pot">🔒 Privée</span>}
             </span>
-          </li>
-        ))}
+          );
+          return (
+            <li key={w.id} className="item done">
+              <WishBody wish={w} extra={tags} />
+              <label className="tick">
+                <input type="checkbox" defaultChecked
+                  onChange={e => undoIfFailed(e.currentTarget, run(() => actions.setReceived(w.id, false), `« ${w.title} » est de retour dans la liste`))} />
+                Reçu
+              </label>
+            </li>
+          );
+        })}
       </ul>
-    </details>
+      <p className="note">Les cadeaux reçus sont supprimés au bout d’un mois.</p>
+    </section>
   );
 }
 
@@ -120,7 +139,7 @@ function OwnWishList({ wishes }: { wishes: Wish[] }) {
         const groups = d.groupsOfWish(w.id).filter(g => d.myGroupIds.includes(g));
         if (editing === w.id) {
           return (
-            <li key={w.id} className="item">
+            <li key={w.id} className="item editing">
               <WishForm draft={edit} onChange={setEdit} submitLabel="Enregistrer" onCancel={() => setEditing(null)}
                 onSubmit={() => run(() => actions.updateWish(w.id, edit), 'Modifié').then(r => { if (r.ok) setEditing(null); })} />
             </li>
@@ -133,30 +152,39 @@ function OwnWishList({ wishes }: { wishes: Wish[] }) {
               : <span className="chip pot">🔒 Privée</span>}
           </span>
         );
+        const tools = (
+          <span className="title-tools">
+            <button className="icon-btn" aria-label="Modifier" title="Modifier" onClick={() => {
+              setEdit({ title: w.title, link: w.link ?? '', price: w.price != null ? String(w.price) : '', stars: w.stars, note: w.note, groups, privateOnly: groups.length === 0 });
+              setEditing(w.id);
+            }}>✏️</button>
+            <button className="icon-btn" aria-label="Supprimer" title="Supprimer" onClick={() => setConfirmDel(w.id)}>🗑️</button>
+          </span>
+        );
         return (
           <li key={w.id} className="item">
-            <WishBody wish={w} extra={tags} />
-            <div className="row">
-              {confirmDel === w.id ? (
-                <>
-                  <span className="who">Retirer cette envie ?</span>
-                  <button className="btn danger sm" onClick={() => run(() => actions.removeWish(w.id), 'Retiré').then(() => setConfirmDel(null))}>Retirer</button>
-                  <button className="btn ghost sm" onClick={() => setConfirmDel(null)}>Garder</button>
-                </>
-              ) : (
-                <>
-                  <button className="link-btn" onClick={() => {
-                    setEdit({ title: w.title, link: w.link ?? '', price: w.price != null ? String(w.price) : '', stars: w.stars, note: w.note, groups, privateOnly: groups.length === 0 });
-                    setEditing(w.id);
-                  }}>Modifier</button>
-                  <button className="link-btn" onClick={() => setConfirmDel(w.id)}>Retirer</button>
-                  <button className="link-btn" onClick={() => run(() => actions.setReceived(w.id, true), `« ${w.title} » est rangé dans tes cadeaux reçus 🎁`)}>Reçu ✓</button>
-                </>
-              )}
-            </div>
+            <WishBody wish={w} extra={tags} tools={tools} />
+            <label className="tick">
+              <input type="checkbox" defaultChecked={false}
+                onChange={e => undoIfFailed(e.currentTarget, run(() => actions.setReceived(w.id, true), `« ${w.title} » est dans tes cadeaux reçus 🎁`))} />
+              Reçu
+            </label>
           </li>
         );
       })}
+      {confirmDel && (() => {
+        const w = wishes.find(x => x.id === confirmDel);
+        if (!w) return null;
+        return (
+          <Modal title={`Supprimer « ${w.title} » ?`} onClose={() => setConfirmDel(null)}>
+            <p className="note">Si quelqu’un l’avait choisie, cette personne sera prévenue.</p>
+            <div className="row modal-actions">
+              <button className="btn ghost" onClick={() => setConfirmDel(null)}>Annuler</button>
+              <button className="btn danger" onClick={() => run(() => actions.removeWish(w.id), 'Envie supprimée').then(() => setConfirmDel(null))}>Supprimer</button>
+            </div>
+          </Modal>
+        );
+      })()}
     </ul>
   );
 }

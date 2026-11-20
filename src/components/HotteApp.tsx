@@ -63,7 +63,7 @@ function Screens({ openGroup }: { openGroup: string | null }) {
   }
 
   const listId = view.kind === 'list' ? view.personId : undefined;
-  const n = d.myClaims.length;
+  const n = d.myClaims.filter(c => !c.offered_at).length;   // still to give
   const tabs: Tab[] = [
     {
       key: 'list', label: 'Ma liste', active: view.kind === 'list' || view.kind === 'addKid',

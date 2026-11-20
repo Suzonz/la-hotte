@@ -74,6 +74,32 @@ test('ma liste : envie privée, envie de groupe, filtre', async ({ browser }) =>
   await shot(page, '1-ma-liste');
 });
 
+test('formulaire : ce qui manque est signalé sous le champ, et l’envie modifiée a son encadré', async ({ browser }) => {
+  const page = await newPerson(browser, 'formulaire');
+  await onboard(page, 'Inès', 'Famille');
+  const form = page.locator('section', { has: page.getByRole('heading', { name: /^Ajouter une envie/ }) });
+  await form.getByRole('button', { name: 'Ajouter' }).click();
+  await expect(form.getByText('Écris le nom du cadeau')).toBeVisible();
+  await expect(form.getByText('Choisis qui verra cette envie')).toBeVisible();
+
+  await form.getByLabel('Le cadeau').fill('Aquarium');
+  await expect(form.getByText('Écris le nom du cadeau')).toHaveCount(0);   // gone as soon as it is fixed
+  await shot(page, '0-formulaire-incomplet');
+  await form.getByLabel('Famille', { exact: true }).check();
+  await expect(form.getByText('Choisis qui verra cette envie')).toHaveCount(0);
+  await form.getByRole('button', { name: 'Ajouter' }).click();
+  await expect(page.locator('.items .item', { hasText: 'Aquarium' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^＋ Ajouter une envie/ })).toBeVisible();
+
+  await addWish(page, 'Manteau', ['Famille']);
+  await page.locator('.items .item', { hasText: 'Aquarium' }).getByRole('button', { name: 'Modifier' }).click();
+  await expect(page.locator('.item.editing')).toBeVisible();
+  await shot(page, '0-modifier-clair');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.waitForTimeout(400);   // let the colour transition end
+  await shot(page, '0-modifier-sombre');
+});
+
 test('invitation, réservation, et le secret : on ne voit jamais ce qu’on nous offre', async ({ browser }) => {
   const alice = await newPerson(browser, 'alice');
   await onboard(alice, 'Alice', 'Famille');
@@ -153,8 +179,8 @@ test('Secret Santa : tirage au sort, chacun ne voit que sa personne, suivi du ca
   await expect(bob.getByText('🎅 Secret Santa').last()).toBeVisible();
   await shot(bob, '5-ce-que-j-offre-secret-santa');
 
-  await bob.getByRole('button', { name: 'Annuler' }).first().click();
-  await bob.getByRole('button', { name: 'Oui' }).click();
+  await bob.getByRole('button', { name: 'Je ne l’offre plus' }).first().click();
+  await bob.getByRole('dialog').getByRole('button', { name: 'Je ne l’offre plus' }).click();
   await expect(status).toHaveValue('progress');   // back to « rien de choisi »
 });
 
@@ -247,7 +273,7 @@ test('deux parents : la liste de l’enfant se partage', async ({ browser }) => 
   await shot(mum, '6-parents-de-leo');
 });
 
-test('après Noël : reçu, offert, et on range pour l’année prochaine', async ({ browser }) => {
+test('après Noël : reçu, offert, puis supprimés au bout d’un mois', async ({ browser }) => {
   const alice = await newPerson(browser, 'noel-a');
   await onboard(alice, 'Alice', 'Famille');
   await addWish(alice, 'Gants', ['Famille']);
@@ -256,25 +282,25 @@ test('après Noël : reçu, offert, et on range pour l’année prochaine', asyn
   await bob.getByRole('button', { name: /Alice/ }).click();
   await bob.locator('.item', { hasText: 'Gants' }).getByRole('button', { name: 'Je l’offre' }).click();
 
-  // Alice: « Reçu ✓ » takes the envie out of her list.
+  // Alice: ticking « Reçu » moves the envie to « Cadeaux reçus ».
   await menu(alice, /Ma liste/, 'Ma liste');
-  await alice.locator('.items .item', { hasText: 'Gants' }).getByRole('button', { name: 'Reçu ✓' }).click();
-  await expect(alice.getByText('🎁 Reçus (1)')).toBeVisible();
+  await alice.locator('.items .item', { hasText: 'Gants' }).getByLabel('Reçu').check();
+  await expect(alice.getByRole('heading', { name: 'Cadeaux reçus (1)' })).toBeVisible();
   // Bob is told, and can no longer reserve it.
   await expect(bob.locator('.item', { hasText: 'Gants' }).getByText('Alice l’a déjà reçu.')).toBeVisible({ timeout: 15_000 });
 
-  // Bob: « Offert ✓ », then tidy up.
+  await expect(alice.getByText('Les cadeaux reçus sont supprimés au bout d’un mois.')).toBeVisible();
+  await shot(alice, '7-cadeaux-recus');
+
+  // Bob: « Offert », and the gift moves down to « Ce que j’ai offert ».
   await bob.getByRole('button', { name: /Ce que j’offre/ }).click();
   await bob.getByLabel('Offert : Gants').check();
-  await bob.getByRole('button', { name: 'Ranger' }).click();
-  await bob.getByRole('button', { name: 'Oui, ranger' }).click();
-  await expect(bob.locator('.gline', { hasText: 'Gants' })).toHaveCount(0);
-  await shot(bob, '7-apres-rangement');
-
-  // Alice tidies her side too: the received envie is gone for good.
-  await alice.getByRole('button', { name: 'Ranger' }).click();
-  await alice.getByRole('button', { name: 'Oui, ranger' }).click();
-  await expect(alice.getByText('🎁 Reçus')).toHaveCount(0);
+  const given = bob.locator('section', { has: bob.getByRole('heading', { name: 'Ce que j’ai offert (1)' }) });
+  await expect(given.locator('.gline', { hasText: 'Gants' })).toBeVisible();
+  await expect(given.getByText('Les cadeaux offerts sont supprimés au bout d’un mois.')).toBeVisible();
+  await expect(bob.getByText('Plus rien à offrir pour l’instant.')).toBeVisible();
+  await shot(bob, '7-ce-que-j-ai-offert');
+  // (the deletion after a month is the server's job: tests/family.test.mjs)
 });
 
 test('mon compte : le récapitulatif par e-mail se coupe et se remet', async ({ browser }) => {
@@ -289,4 +315,31 @@ test('mon compte : le récapitulatif par e-mail se coupe et se remet', async ({ 
   await expect(box).not.toBeChecked();
   await box.check();
   await expect(box).toBeChecked();
+});
+
+test('envie : crayon, corbeille avec confirmation, case « Reçu »', async ({ browser }) => {
+  const page = await newPerson(browser, 'icones');
+  await onboard(page, 'Inès', 'Famille');
+  await addWish(page, 'Aquarium', ['Famille'], '45');
+  await addWish(page, 'Manteau', ['Famille']);
+  const aquarium = page.locator('.items .item', { hasText: 'Aquarium' });
+  await shot(page, '0-envies-icones');
+
+  await aquarium.getByRole('button', { name: 'Supprimer' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Supprimer « Aquarium » ?' });
+  await shot(page, '0-confirmation-suppression');
+  await dialog.getByRole('button', { name: 'Annuler' }).click();
+  await expect(aquarium).toBeVisible();
+  await aquarium.getByRole('button', { name: 'Supprimer' }).click();
+  await dialog.getByRole('button', { name: 'Supprimer' }).click();
+  await expect(aquarium).toHaveCount(0);
+
+  const manteau = page.locator('.items .item', { hasText: 'Manteau' });
+  await manteau.getByLabel('Reçu').check();
+  const received = page.locator('section.received');
+  await expect(received.getByRole('heading', { name: 'Cadeaux reçus (1)' })).toBeVisible();
+  await shot(page, '0-cadeaux-recus');
+  await received.getByLabel('Reçu').uncheck();
+  await expect(page.locator('.items .item', { hasText: 'Manteau' })).toBeVisible();
+  await expect(received).toHaveCount(0);
 });

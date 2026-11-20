@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useHotte } from '@/lib/hotte';
 import { byName, eur, hostOf } from '@/lib/format';
 import type { Claim } from '@/lib/types';
-import { NewSeason } from './NewSeason';
+import { Modal } from './Modal';
 import { SantaTracker } from './santa/SantaGifts';
 
 type Sort = 'person' | 'group';
@@ -15,43 +15,50 @@ function ClaimLine({ claim: c, showWho }: { claim: Claim; showWho: boolean }) {
   const [confirm, setConfirm] = useState(false);
   const w = c.wish_id ? data.wishes.find(x => x.id === c.wish_id) : undefined;
   const kind = c.kind === 'buy' ? 'J’offre' : c.kind === 'part' ? 'Je participe' : 'Hors liste';
-  const warn = w?.removed ? ' · retiré de ses envies' : w && w.edited_at > c.updated_at ? ' · modifié depuis' : '';
+  const received = !!w?.received_at;   // good news, not a warning
+  const warn = received ? '' : w?.removed ? ' · retiré de ses envies' : w && w.edited_at > c.updated_at ? ' · modifié depuis' : '';
   const who = d.personById.get(c.recipient_id)!;
   const forSanta = data.santaGifts.some(x => x.claim_id === c.id);
   const title = w?.title ?? (c.note || 'Une surprise');
+  const stopLabel = c.kind === 'part' ? 'Je ne participe plus' : 'Je ne l’offre plus';
   // The box follows the click at once; the saved value takes over after the reload.
   const [offeredNow, setOfferedNow] = useState<boolean | null>(null);
   const offered = offeredNow ?? !!c.offered_at;
 
   return (
     <div className={'gline' + (offered ? ' offered' : '')}>
-      <label className="santa-tick" title="Coche quand le cadeau est donné">
+      <div className="gmain">
+        <span className="t">
+          <span className="eyebrow">{kind}{showWho ? ` · pour ${who.name}` : ''}</span>
+          {forSanta && <span className="chip pot" style={{ marginLeft: 6 }}>🎅 Secret Santa</span>}
+          <br />
+          <span className="gtitle">{title}</span>
+          {received && <span className="who"> · reçu</span>}
+          {warn && <span className="warn">{warn}</span>}
+          {w?.link && <> <a href={w.link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13 }}>{hostOf(w.link)}</a></>}
+        </span>
+        <span className="row" style={{ justifyContent: 'flex-end' }}>
+          {c.amount ? <span className="a">{eur(c.amount)}</span> : null}
+          {!c.offered_at && <button className="btn ghost sm" onClick={() => setConfirm(true)}>{stopLabel}</button>}
+        </span>
+      </div>
+      <label className="tick">
         <input type="checkbox" checked={offered} aria-label={`Offert : ${title}`} onChange={e => {
           const v = e.target.checked;
           setOfferedNow(v);
           run(() => actions.setOffered(c.id, v), v ? `« ${title} » est offert ✓` : undefined).then(() => setOfferedNow(null));
         }} />
+        Offert
       </label>
-      <span className="t">
-        <span className="eyebrow">{kind}{showWho ? ` · pour ${who.name}` : ''}</span>
-        {forSanta && <span className="chip pot" style={{ marginLeft: 6 }}>🎅 Secret Santa</span>}
-        <br />
-        {title}
-        {warn && <span className="warn">{warn}</span>}
-        {w?.link && <> <a href={w.link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13 }}>{hostOf(w.link)}</a></>}
-      </span>
-      <span className="row" style={{ justifyContent: 'flex-end' }}>
-        {c.amount ? <span className="a">{eur(c.amount)}</span> : null}
-        {confirm ? (
-          <>
-            <span className="who">{c.kind === 'part' ? 'Retirer ta participation ?' : 'Ne plus offrir ce cadeau ?'}</span>
-            <button className="btn danger sm" onClick={() => run(() => actions.cancelClaim(c.id), `« ${title} » annulé`)}>Oui</button>
-            <button className="btn ghost sm" onClick={() => setConfirm(false)}>Non</button>
-          </>
-        ) : (
-          <button className="btn ghost sm" onClick={() => setConfirm(true)}>Annuler</button>
-        )}
-      </span>
+      {confirm && (
+        <Modal title={c.kind === 'part' ? `Ne plus participer à « ${title} » ?` : `Ne plus offrir « ${title} » ?`} onClose={() => setConfirm(false)}>
+          <p className="note">Le cadeau redevient libre pour les autres.</p>
+          <div className="row modal-actions">
+            <button className="btn ghost" onClick={() => setConfirm(false)}>Annuler</button>
+            <button className="btn danger" onClick={() => run(() => actions.cancelClaim(c.id), `« ${title} » annulé`).then(() => setConfirm(false))}>{stopLabel}</button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -60,7 +67,10 @@ function ClaimLine({ claim: c, showWho }: { claim: Claim; showWho: boolean }) {
 export function GiftsView({ onOpen }: { onOpen: (personId: string, groupId?: string) => void }) {
   const { d, data } = useHotte();
   const [sort, setSort] = useState<Sort>('person');
-  const list = d.myClaims.filter(c => d.personById.has(c.recipient_id));
+  const all = d.myClaims.filter(c => d.personById.has(c.recipient_id));
+  // Given gifts go to « Ce que j'ai offert », at the bottom.
+  const list = all.filter(c => !c.offered_at);
+  const given = all.filter(c => c.offered_at);
 
   // A claim belongs to the groups (of mine) where its envie is filed — or, for an
   // off-list gift, to the groups I share with the recipient.
@@ -99,7 +109,9 @@ export function GiftsView({ onOpen }: { onOpen: (personId: string, groupId?: str
       <SantaTracker onOpenPerson={(pid, gid) => onOpen(pid, gid)} />
 
       {!list.length ? (
-        <div className="empty">Tu n’as encore rien choisi. Ouvre un groupe dans « Mes groupes », puis la liste d’une personne, pour réserver un cadeau ou participer.</div>
+        <div className="empty">{given.length
+          ? 'Plus rien à offrir pour l’instant.'
+          : 'Tu n’as encore rien choisi. Ouvre un groupe dans « Mes groupes », puis la liste d’une personne, pour réserver un cadeau ou participer.'}</div>
       ) : (
         <>
           <div className="filters" role="group" aria-label="Trier">
@@ -123,8 +135,15 @@ export function GiftsView({ onOpen }: { onOpen: (personId: string, groupId?: str
               </section>
             );
           })}
-          <NewSeason />
         </>
+      )}
+
+      {given.length > 0 && (
+        <section className="panel">
+          <h2>Ce que j’ai offert ({given.length})</h2>
+          <div>{given.map(c => line(c, true))}</div>
+          <p className="note">Les cadeaux offerts sont supprimés au bout d’un mois.</p>
+        </section>
       )}
     </>
   );

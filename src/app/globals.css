@@ -1,6 +1,6 @@
 /* La Hotte — one narrow column, sticky header with a scrollable row of people; each envie is a "tag" card. */
 :root {
-  --bg: #eef3f0; --surface: #ffffff; --ink: #14241d; --muted: #5a6a62; --line: #d3dfd8;
+  --bg: #e1ebe5; --surface: #ffffff; --ink: #14241d; --muted: #5a6a62; --line: #c9d8cf;
   --pine: #1d5a43; --pine-soft: #dcebe3; --berry: #b0243c; --berry-soft: #f6dfe3;
   --gold: #a87a12; --gold-soft: #f6ecd2;
   --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
@@ -10,9 +10,10 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0e1613; --surface: #16211c; --ink: #e5eee9; --muted: #93a69c; --line: #283a32;
-    --pine: #63b892; --pine-soft: #1c3329; --berry: #e46a80; --berry-soft: #3a1d24;
-    --gold: #e0b64c; --gold-soft: #33290f; color-scheme: dark;
+    /* Boxes stand clearly off the page; what is in front (accents, chosen chips) stays bright. */
+    --bg: #0a100d; --surface: #233a2f; --ink: #eef5f1; --muted: #a9bdb2; --line: #3d5649;
+    --pine: #74d3a7; --pine-soft: #2a4a3c; --berry: #f07f93; --berry-soft: #4a222b;
+    --gold: #f0c65a; --gold-soft: #45381a; color-scheme: dark;
   }
 }
 
@@ -52,7 +53,7 @@ h2 { font: 600 18px/1.2 var(--display); margin: 0; overflow-wrap: anywhere }
 .sub { color: var(--muted); margin: 4px 0 0 }
 .eyebrow { font: 600 11px var(--body); text-transform: uppercase; letter-spacing: .08em; color: var(--muted) }
 
-.panel { background: var(--surface); border: 0; border-radius: var(--r); padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0 }
+.panel { background: var(--surface); border: 1px solid var(--line); box-shadow: 0 1px 3px rgba(0, 0, 0, .08); border-radius: var(--r); padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0 }
 .note { font-size: 13px; color: var(--muted); margin: 0 }
 .note b { color: var(--ink); font-weight: 600 }
 .banner { border-radius: var(--r); padding: 12px 14px; font-size: 14px; background: var(--gold-soft); color: var(--ink); border: 1px solid var(--gold) }
@@ -83,6 +84,14 @@ input:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visib
 /* Lists are plain rows separated by a hairline: no boxes inside boxes. */
 .item { background: transparent; border: 0; border-top: 1px solid var(--line); padding: 14px 0; display: flex; flex-direction: column; gap: 8px }
 .item:first-child { border-top: 0 }
+/* The envie being edited: its own box, so it is clear where the form starts and ends. */
+.item.editing { background: var(--surface); border: 1.5px solid var(--pine); border-radius: var(--r); padding: 16px; margin-block: 8px }
+.item.editing + .item { border-top: 0 }
+/* A field to fix: red outline and a short line right under it. */
+.invalid input, .invalid textarea { border-color: var(--berry); box-shadow: 0 0 0 1px var(--berry) }
+fieldset.invalid > .row { outline: 2px solid var(--berry); outline-offset: 4px; border-radius: 12px }
+.field-error { display: block; font-size: 13px; font-weight: 600; color: var(--berry); margin-top: 4px }
+.field-error::before { content: "⚠ " }
 .item.taken { opacity: .65 }
 .item.gone { opacity: .65 }
 .ihead { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px }
@@ -108,7 +117,9 @@ input:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visib
 .warn { font-size: 13px; color: var(--berry); font-weight: 500 }
 
 .empty { text-align: center; padding: 28px 16px; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--r) }
-.gline { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; align-items: center }
+.gline { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 14px }
+.gmain { display: flex; justify-content: space-between; gap: 12px; align-items: center }
+.gtitle { font-size: 15px; font-weight: 600 }
 .gline .t { min-width: 0; overflow-wrap: anywhere }
 .gline .a { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600 }
 
@@ -194,8 +205,16 @@ ul.members li:first-child { border-top: 0 }
 .prose ul { margin: 4px 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px }
 .app-footer { display: flex; gap: 16px; justify-content: center; padding-block: 8px 32px; font-size: 13px }
 .app-footer a, .app-footer button { color: var(--muted); background: none; border: 0; font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px }
-.received summary { cursor: pointer; color: var(--muted); font-weight: 600; padding-block: 6px }
-.gline.offered .t { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line) }
+.received { display: flex; flex-direction: column; gap: 8px; margin-top: 8px }
+/* Finished (received, given): same card, a little paler; the tick stays clear. */
+.item.done > :not(label) { opacity: .75 }
+.ititle-row { display: flex; align-items: center; gap: 2px; min-width: 0 }
+.title-tools { display: inline-flex; gap: 0; flex: none }
+.title-tools .icon-btn { font-size: 15px; padding: 3px 5px }
+label.tick { flex-direction: row; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: var(--ink); cursor: pointer; width: fit-content }
+label.tick input { width: 17px; height: 17px; accent-color: var(--pine); margin: 0 }
+.modal-actions { justify-content: flex-end }
+.gline.offered .t, .gline.offered .a { opacity: .75 }
 /* Secondary actions on a row: quiet text, not boxed buttons. */
 .link-btn { background: none; border: 0; padding: 2px 0; margin-right: 14px; color: var(--muted); font: 500 13px var(--body); cursor: pointer }
 .link-btn:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px }

@@ -1,5 +1,5 @@
-// The consolidated schema (supabase/migrations) must produce exactly the same
-// database as the six step-by-step files applied during development
+// The single schema (supabase/migrations/0001_schema.sql) must produce exactly the same
+// database as the ten step-by-step files applied during development
 // (supabase/archive) — tables, constraints, indexes, policies, functions,
 // triggers and privileges.
 import { test } from 'node:test';
@@ -49,8 +49,8 @@ const QUERIES = {
                    where n.nspname = 'public' order by 1, 2`,
 };
 
-test('le schéma fusionné est identique aux six fichiers appliqués un par un', async () => {
-  // Only the consolidated file: later migrations (0002…) are new changes, not part of the archive.
+test('le schéma unique est identique aux dix fichiers appliqués un par un', async () => {
+  // New changes after this would be 0002…, not part of the archive: compare with the single file only.
   const [steps, squashed] = await Promise.all([build('archive'), build('migrations', '0001_schema.sql')]);
   for (const [name, sql] of Object.entries(QUERIES)) {
     const [a, b] = await Promise.all([steps.query(sql), squashed.query(sql)]);
