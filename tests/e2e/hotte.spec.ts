@@ -112,6 +112,7 @@ test('invitation, réservation, et le secret : on ne voit jamais ce qu’on nous
   const scarf = bob.locator('.item', { hasText: 'Écharpe rouge' });
   await scarf.getByRole('button', { name: 'Je l’offre' }).click();
   await expect(scarf.getByText('Tu l’offres')).toBeVisible();
+  await expect(bob.getByText('(ne voit pas ce qui est réservé)')).toBeVisible();
   await shot(bob, '2-liste-d-alice-vue-par-bob');
 
   await bob.getByRole('button', { name: /Ce que j’offre/ }).click();
@@ -164,11 +165,13 @@ test('Secret Santa : tirage au sort, chacun ne voit que sa personne, suivi du ca
   const gift = bob.locator('.item', { hasText: `Cadeau pour ${target}` });
   if (target !== 'Alice') {
     await gift.getByRole('button', { name: 'Je l’offre' }).click();
-    await gift.getByLabel(/Pour mon Secret Santa/).check();
+    await expect(gift.getByLabel(/Secret Santa/)).not.toBeChecked();   // never ticked for you
+    await gift.getByLabel(/Secret Santa/).check();
   } else {
     await bob.getByRole('button', { name: 'J’offre autre chose' }).click();
     await bob.getByLabel('Ton idée').fill('Un bon pour un resto');
-    await bob.getByLabel(/Pour mon Secret Santa/).check();
+    await expect(bob.getByLabel(/Secret Santa/)).not.toBeChecked();
+    await bob.getByLabel(/Secret Santa/).check();
     await bob.getByRole('button', { name: 'Enregistrer' }).click();
   }
   await expect(bob.getByRole('dialog')).toBeVisible();
@@ -182,6 +185,25 @@ test('Secret Santa : tirage au sort, chacun ne voit que sa personne, suivi du ca
   await bob.getByRole('button', { name: 'Je ne l’offre plus' }).first().click();
   await bob.getByRole('dialog').getByRole('button', { name: 'Je ne l’offre plus' }).click();
   await expect(status).toHaveValue('progress');   // back to « rien de choisi »
+
+  // An off-list gift: the third person sees it on the page, with the same words as an envie.
+  await menu(bob, /Mes groupes/, 'Famille');
+  await bob.getByRole('button', { name: new RegExp(target) }).first().click();
+  await bob.getByRole('button', { name: 'J’offre autre chose' }).click();
+  await bob.getByLabel('Ton idée').fill('Un livre de cuisine');
+  await bob.getByRole('button', { name: 'Enregistrer' }).click();
+  if (await bob.getByRole('dialog').isVisible()) await bob.getByRole('button', { name: 'Je continue' }).click();
+  const third = target === 'Alice' ? chloe : alice;
+  await third.reload();
+  await menu(third, /Mes groupes/, 'Famille');
+  await third.getByRole('button', { name: new RegExp(target) }).first().click();
+  const off = third.locator('.item', { hasText: 'Un livre de cuisine' });
+  await expect(off.getByText('Déjà pris')).toBeVisible();
+  await expect(off.getByText('par Bob · hors liste')).toBeVisible();
+  await expect(off.getByRole('button')).toHaveCount(0);   // not mine: nothing to do on it
+  await third.emulateMedia({ colorScheme: 'dark' });
+  await third.waitForTimeout(400);
+  await shot(third, '5b-hors-liste-sombre');
 });
 
 test('en direct : une réservation apparaît chez les autres sans recharger', async ({ browser }) => {

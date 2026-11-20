@@ -8,8 +8,15 @@ import { Modal } from '../Modal';
 import { frDay } from './shared';
 
 
+/** « 🎅 Secret Santa » (« de Léo » when it is my child who gives; the Secret Santa's name if I am in several). */
+export function SantaTickLabel({ giverId, santaName, several }: { giverId: string; santaName: string; several: boolean }) {
+  const { d } = useHotte();
+  const giver = d.personById.get(giverId);
+  return <>🎅 Secret Santa{giver && giver.user_id !== d.me ? ` de ${giver.name}` : ''}{several && <span className="who"> · {santaName}</span>}</>;
+}
+
 /**
- * Under one of MY reservations: « 🎅 Pour mon Secret Santa » for each Secret Santa
+ * Under one of MY reservations: « 🎅 Secret Santa » (unticked at first) for each Secret Santa
  * in which I (or my child) give to this very person. Private to me.
  */
 export function SantaGiftToggle({ claim }: { claim: Claim }) {
@@ -26,8 +33,6 @@ export function SantaGiftToggle({ claim }: { claim: Claim }) {
     <>
       {draws.map(({ pair, santa }) => {
         const on = pending[santa.id] ?? d.isSantaGift(claim.id, santa.id);
-        const giver = d.personById.get(pair.giver_id);
-        const forKid = giver && giver.user_id !== d.me ? ` de ${giver.name}` : '';
         return (
           <label key={santa.id} className="santa-tick">
             <input type="checkbox" checked={on} onChange={e => {
@@ -40,7 +45,7 @@ export function SantaGiftToggle({ claim }: { claim: Claim }) {
                 });
               } else run(() => actions.untagSantaGift(claim.id, santa.id), 'Retiré du Secret Santa').then(() => settle(santa.id));
             }} />
-            🎅 Pour mon Secret Santa{forKid} <span className="who">({santa.name})</span>
+            <SantaTickLabel giverId={pair.giver_id} santaName={santa.name} several={draws.length > 1} />
           </label>
         );
       })}
@@ -84,8 +89,8 @@ export function SantaTracker({ onOpenPerson }: { onOpenPerson: (personId: string
     <section className="panel">
       <h2>🎅 Secret Santa</h2>
       {draws.map(({ pair, santa }) => {
-        const key = santa.id + pair.giver_id;
         const giver = d.personById.get(pair.giver_id);
+        const key = santa.id + pair.giver_id;
         const receiver = d.personById.get(pair.receiver_id);
         const state = d.santaGiftState(santa.id, pair.giver_id);
         const gifts = d.santaGiftClaims(santa.id, pair.giver_id);

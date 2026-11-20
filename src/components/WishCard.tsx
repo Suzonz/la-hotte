@@ -5,6 +5,7 @@ import { useHotte } from '@/lib/hotte';
 import { eur, parseAmount } from '@/lib/format';
 import type { Claim, Person, Wish } from '@/lib/types';
 import { SantaGiftToggle } from './santa/SantaGifts';
+import { StopClaim } from './StopClaim';
 import { WishBody } from './WishBody';
 
 /** Someone else's envie (or my child's), with its reservations and my actions. */
@@ -33,7 +34,7 @@ export function WishCard({ person, wish, claims }: { person: Person; wish: Wish;
   let status: React.ReactNode;
   if (buy) {
     status = buy.claimer_id === d.me
-      ? <span className="chip mine">Tu l’offres</span>
+      ? <span className="chip mine">✓ Tu l’offres</span>
       : <><span className="chip bought">Déjà pris</span><span className="who">par {d.whoName(buy.claimer_id)}</span></>;
   } else if (parts.length) {
     status = (
@@ -55,34 +56,37 @@ export function WishCard({ person, wish, claims }: { person: Person; wish: Wish;
     </form>
   );
 
+  const warn = wish.removed ? `${name} a retiré ce cadeau.`
+    : wish.received_at ? `${name} l’a déjà reçu.`
+    : mine && wish.edited_at > mine.updated_at ? `Modifié par ${name} depuis ton choix : vérifie les détails.` : '';
+
   return (
     <li className={'item' + (buy && buy.claimer_id !== d.me ? ' taken' : '') + (gone ? ' gone' : '')}>
-      <WishBody wish={wish} />
-      <div className="status">{status}</div>
-      <div className="row">
-        {wish.removed && <span className="warn">{name} a retiré ce cadeau.</span>}
-        {!wish.removed && wish.received_at && <span className="warn">{name} l’a déjà reçu.</span>}
-        {mine && !gone && wish.edited_at > mine.updated_at && <span className="warn">Modifié par {name} depuis ton choix : vérifie les détails.</span>}
-        {mine ? (
-          <>
-            {mine.kind === 'part' && (partOpen ? partForm
-              : <button className="btn ghost sm" onClick={() => { setAmount(String(mine.amount ?? '')); setPartOpen(true); }}>Changer ma part</button>)}
-            <button className="btn ghost sm" onClick={() => run(() => actions.cancelClaim(mine.id), 'Annulé')}>
-              {mine.kind === 'buy' ? 'Je ne l’offre plus' : 'Retirer ma part'}
-            </button>
-          </>
-        ) : !gone && (partOpen ? partForm : (
-          <>
-            <button className="btn sm" disabled={!!buy || othersClaimed}
-              title={othersClaimed && !buy ? 'Une cagnotte est en cours : participe plutôt' : undefined}
-              onClick={() => run(() => actions.claim(person.id, 'buy', { wishId: wish.id, amount: wish.price }), `Noté : tu offres « ${wish.title} »`)}>
-              Je l’offre
-            </button>
-            <button className="btn alt sm" disabled={!!buy} onClick={() => { setAmount(''); setPartOpen(true); }}>Je participe</button>
-          </>
-        ))}
+      <WishBody wish={wish} starsOnly />
+      {warn && <span className="warn">{warn}</span>}
+      {/* One line under a hairline: where it stands, 🎅, then what I can do. */}
+      <div className="card-actions">
+        <span className="status">{status}</span>
+        {mine && <SantaGiftToggle claim={mine} />}
+        <span className="row push">
+          {mine ? (
+            <>
+              {mine.kind === 'part' && (partOpen ? partForm
+                : <button className="btn ghost sm" onClick={() => { setAmount(String(mine.amount ?? '')); setPartOpen(true); }}>Changer ma part</button>)}
+              <StopClaim claim={mine} title={wish.title} />
+            </>
+          ) : !gone && (partOpen ? partForm : (
+            <>
+              <button className="btn sm" disabled={!!buy || othersClaimed}
+                title={othersClaimed && !buy ? 'Une cagnotte est en cours : participe plutôt' : undefined}
+                onClick={() => run(() => actions.claim(person.id, 'buy', { wishId: wish.id, amount: wish.price }), `Noté : tu offres « ${wish.title} »`)}>
+                Je l’offre
+              </button>
+              <button className="btn alt sm" disabled={!!buy} onClick={() => { setAmount(''); setPartOpen(true); }}>Je participe</button>
+            </>
+          ))}
+        </span>
       </div>
-      {mine && <SantaGiftToggle claim={mine} />}
     </li>
   );
 }

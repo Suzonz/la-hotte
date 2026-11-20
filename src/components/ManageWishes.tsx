@@ -52,10 +52,15 @@ export function WishList({ person }: { person: Person }) {
   const shown = live.filter(w => matches(w, filter));
   const hasPrivate = count('private') > 0;
 
+  const heading = person.user_id === d.me ? 'Mes envies' : 'Ses envies';   // the page title already has the name
+
   if (!live.length) {
     return (
       <>
-        <div className="empty">Aucune envie pour l’instant. Ajoute la première au-dessus.</div>
+        <section className="panel">
+          <h2>{heading}</h2>
+          <p className="note">Aucune envie pour l’instant. Ajoute la première au-dessus.</p>
+        </section>
         <ReceivedList wishes={received} />
       </>
     );
@@ -63,9 +68,9 @@ export function WishList({ person }: { person: Person }) {
 
   return (
     <>
-    <section className="stack" style={{ alignItems: 'stretch', gap: 12 }}>
+    <section className="panel">
       <div className="listhead">
-        <h2>{person.user_id === d.me ? 'Mes envies' : `Les envies de ${person.name}`} ({live.length})</h2>
+        <h2>{heading} ({live.length})</h2>
       </div>
       {(d.myGroups.length > 0 || hasPrivate) && (
         <div className="filters" role="group" aria-label="Filtrer par groupe">
@@ -88,6 +93,15 @@ export function WishList({ person }: { person: Person }) {
   );
 }
 
+/** Drawn, not an emoji: the 🗑️ emoji is pale grey on Windows. Takes the text colour. */
+function TrashIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: 'block' }}>
+      <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" />
+    </svg>
+  );
+}
+
 /** A « Reçu » box follows the click at once; if saving fails, it goes back. */
 function undoIfFailed(box: HTMLInputElement, done: Promise<{ ok: boolean }>) {
   done.then(r => { if (!r.ok && box.isConnected) box.checked = !box.checked; });
@@ -98,7 +112,7 @@ function ReceivedList({ wishes }: { wishes: Wish[] }) {
   const { d, actions, run } = useHotte();
   if (!wishes.length) return null;
   return (
-    <section className="received">
+    <section className="panel received">
       <h2>Cadeaux reçus ({wishes.length})</h2>
       <ul className="items">
         {wishes.map(w => {
@@ -158,7 +172,7 @@ function OwnWishList({ wishes }: { wishes: Wish[] }) {
               setEdit({ title: w.title, link: w.link ?? '', price: w.price != null ? String(w.price) : '', stars: w.stars, note: w.note, groups, privateOnly: groups.length === 0 });
               setEditing(w.id);
             }}>✏️</button>
-            <button className="icon-btn" aria-label="Supprimer" title="Supprimer" onClick={() => setConfirmDel(w.id)}>🗑️</button>
+            <button className="icon-btn" aria-label="Supprimer" title="Supprimer" onClick={() => setConfirmDel(w.id)}><TrashIcon /></button>
           </span>
         );
         return (

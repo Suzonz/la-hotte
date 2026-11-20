@@ -3,14 +3,15 @@
 import { useState } from 'react';
 import { useHotte } from '@/lib/hotte';
 import { eur, parseAmount } from '@/lib/format';
-import type { Group, Person } from '@/lib/types';
-import { CompleteOrContinue, SantaGiftToggle } from './santa/SantaGifts';
+import type { Claim, Group, Person } from '@/lib/types';
+import { CompleteOrContinue, SantaGiftToggle, SantaTickLabel } from './santa/SantaGifts';
+import { StopClaim } from './StopClaim';
 import { WishCard } from './WishCard';
 
 /**
  * Someone's envies, to reserve, chip in or plan an off-list gift.
- * Opened from a group, it shows only the envies filed in that group.
- * (My own children are managed in « Ma liste ».)
+ * Opened from a group, it shows only the envies filed in that group
+ * (the « ← group » link above already says which one).
  */
 export function PersonView({ person, group }: { person: Person; group?: Group }) {
   const { d } = useHotte();
@@ -24,53 +25,75 @@ export function PersonView({ person, group }: { person: Person; group?: Group })
     .filter(w => !gone(w) || claims.some(c => c.wish_id === w.id))
     .filter(w => (group ? d.groupsOfWish(w.id).includes(group.id) : true))
     .sort((a, b) => Number(gone(a)) - Number(gone(b)) || b.stars - a.stars);
-  const common = d.commonGroups(person).map(g => g.name);
-  const managedBy = kid ? `gérées par ${d.parentNames(person)}` : '';
+  const offs = claims.filter(c => c.kind === 'other');
 
   return (
     <>
       <div>
-        <span className="eyebrow">
-          {group ? `Groupe ${group.name}${managedBy ? ' · ' + managedBy : ''}` : kid ? `Envies ${managedBy}` : 'Les envies de'}
-        </span>
-        <h1>{person.name}</h1>
-        <p className="sub">
-          {iManage
-            ? 'Tu gères ses envies. Tout le monde voit ce qui est réservé dessus, toi compris, pour éviter les doublons.'
-            : kid ? '' : `${person.name} ne voit pas ce qui est réservé sur ses envies.`}
-          {group && common.length > 1 && ` Vous êtes aussi ensemble dans : ${common.filter(n => n !== group.name).join(', ')}.`}
-          {!group && !iManage && ` Groupes en commun : ${common.join(', ') || 'aucun'}.`}
-        </p>
+        {kid && <span className="eyebrow">Envies gérées par {d.parentNames(person)}</span>}
+        <h1>{person.name}{!kid && <> <span className="h1-note">(ne voit pas ce qui est réservé)</span></>}</h1>
+        {iManage && <p className="sub">Tu gères ses envies. Tout le monde voit ce qui est réservé dessus, toi compris, pour éviter les doublons.</p>}
+        {d.myDraws.filter(x => x.pair.receiver_id === person.id && !d.isRevealed(x.santa)).map(({ pair, santa }) => {
+          const giver = d.personById.get(pair.giver_id);
+          return (
+            <p key={santa.id} className="santa-line">
+              🎅 {giver?.user_id === d.me ? 'Tu es son Secret Santa' : `${giver?.name} est son Secret Santa`}
+              <span className="who"> · {santa.name}{santa.budget != null ? ` · ${eur(santa.budget)}` : ''}</span>
+            </p>
+          );
+        })}
       </div>
 
-      {d.myDraws.filter(x => x.pair.receiver_id === person.id && !d.isRevealed(x.santa)).map(({ pair, santa }) => {
-        const giver = d.personById.get(pair.giver_id);
-        return (
-          <p key={santa.id} className="note">
-            🎅 {giver?.user_id === d.me ? <b>C’est toi son Secret Santa</b> : <><b>{giver?.name}</b> est son Secret Santa</>}
-            {' '}· {santa.name}{santa.budget != null ? ` · ${eur(santa.budget)}` : ''}
-          </p>
-        );
-      })}
+      <section className="panel">
+        {wishes.length === 0 && offs.length === 0
+          ? <p className="note">{person.name} n’a encore rien rangé {group ? `dans le groupe « ${group.name} »` : 'dans vos groupes communs'}. Tu peux quand même prévoir un cadeau hors liste.</p>
+          : (
+            <ul className="items">
+              {wishes.map(w => <WishCard key={w.id} person={person} wish={w} claims={d.claimsOn(w.id)} />)}
+              {offs.map(c => <OffListCard key={c.id} claim={c} />)}
+            </ul>
+          )}
+      </section>
 
-      {wishes.length === 0
-        ? <div className="empty">{person.name} n’a encore rien rangé {group ? `dans le groupe « ${group.name} »` : 'dans vos groupes communs'}. Tu peux quand même prévoir un cadeau hors liste plus bas.</div>
-        : <ul className="items">{wishes.map(w => <WishCard key={w.id} person={person} wish={w} claims={d.claimsOn(w.id)} />)}</ul>}
-
-      <OffList person={person} />
+      <OffListForm person={person} />
     </>
   );
 }
 
-function OffList({ person }: { person: Person }) {
+/** A gift that is not in the envies, shown with them so nobody has the same idea. */
+function OffListCard({ claim: c }: { claim: Claim }) {
+  const { d } = useHotte();
+  const mine = c.claimer_id === d.me;
+  return (
+    <li className="item">
+      <div className="ihead">
+        <h3 className="ititle">{c.note || 'Une surprise'}</h3>
+        {c.amount ? <span className="price">{eur(c.amount)}</span> : null}
+      </div>
+      {/* Same words as an envie: « ✓ Tu l'offres » or « Déjà pris par Bob », then « hors liste ». */}
+      <div className="card-actions">
+        <span className="status">
+          {mine
+            ? <span className="chip mine">✓ Tu l’offres</span>
+            : <><span className="chip bought">Déjà pris</span><span className="who">par {d.whoName(c.claimer_id)} · hors liste</span></>}
+          {mine && <span className="who">hors liste</span>}
+        </span>
+        <SantaGiftToggle claim={c} />
+        {mine && <span className="row push"><StopClaim claim={c} title={c.note || 'Une surprise'} /></span>}
+      </div>
+    </li>
+  );
+}
+
+/** « + J'offre autre chose » : the explanation only shows once it is opened. */
+function OffListForm({ person }: { person: Person }) {
   const { d, actions, run, toast } = useHotte();
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState('');
   const [amount, setAmount] = useState('');
-  const offs = d.claimsFor(person.id).filter(c => c.kind === 'other');
   // Secret Santas where I (or my child) drew this person: the gift can be ticked 🎅 right away.
   const draws = d.myDraws.filter(x => x.pair.receiver_id === person.id && !d.isRevealed(x.santa));
-  const [forSanta, setForSanta] = useState<string[]>([]);   // santa ids
+  const [forSanta, setForSanta] = useState<string[]>([]);   // santa ids, none ticked at first
   const [asking, setAsking] = useState<null | { santaId: string; giverId: string }>(null);
 
   const save = () => {
@@ -88,54 +111,39 @@ function OffList({ person }: { person: Person }) {
   };
 
   return (
-    <section className="panel">
-      <h2>Cadeaux hors liste pour {person.name}</h2>
-      <p className="note">Pour une surprise qui n’est pas dans ses envies. Indique-la ici pour que deux personnes n’aient pas la même idée.</p>
-      {offs.length > 0 && (
-        <div>
-          {offs.map(c => (
-            <div key={c.id} className="stack" style={{ alignItems: 'stretch', gap: 4 }}>
-              <div className="gline">
-                <span className="t"><b>{c.claimer_id === d.me ? 'Toi' : d.whoName(c.claimer_id)}</b> : {c.note || 'une surprise'}</span>
-                <span className="row">
-                  {c.amount ? <span className="a">{eur(c.amount)}</span> : null}
-                  {c.claimer_id === d.me && <button className="btn ghost sm" onClick={() => run(() => actions.cancelClaim(c.id), 'Annulé')}>Annuler</button>}
-                </span>
-              </div>
-              <SantaGiftToggle claim={c} />
-            </div>
-          ))}
-        </div>
-      )}
+    <>
       {open ? (
-        <form className="grid" onSubmit={e => { e.preventDefault(); save(); }}>
-          <label className="full">Ton idée
-            <input value={note} maxLength={200} placeholder="Ex. un pull tricoté main" autoFocus onChange={e => setNote(e.target.value)} />
-          </label>
-          <label>Budget (facultatif, €)
-            <input value={amount} inputMode="decimal" onChange={e => setAmount(e.target.value)} />
-          </label>
-          {draws.length > 0 && (
-            <div className="stack" style={{ justifyContent: 'flex-end', gap: 4 }}>
-              {draws.map(({ pair, santa }) => {
-                const giver = d.personById.get(pair.giver_id);
-                const on = forSanta.includes(santa.id);
-                return (
-                  <label key={santa.id} className="santa-tick">
-                    <input type="checkbox" checked={on} onChange={e => setForSanta(e.target.checked ? [...forSanta, santa.id] : forSanta.filter(x => x !== santa.id))} />
-                    🎅 Pour mon Secret Santa{giver && giver.user_id !== d.me ? ` de ${giver.name}` : ''} <span className="who">({santa.name})</span>
-                  </label>
-                );
-              })}
+        <section className="panel">
+          <h2>J’offre autre chose</h2>
+          <p className="note">Pour une surprise qui n’est pas dans ses envies. Les autres la verront, pour ne pas avoir la même idée.</p>
+          <form className="grid" onSubmit={e => { e.preventDefault(); save(); }}>
+            <label className="full">Ton idée
+              <input value={note} maxLength={200} placeholder="Ex. un pull tricoté main" autoFocus onChange={e => setNote(e.target.value)} />
+            </label>
+            <label>Budget (facultatif, €)
+              <input value={amount} inputMode="decimal" onChange={e => setAmount(e.target.value)} />
+            </label>
+            {draws.length > 0 && (
+              <div className="stack" style={{ justifyContent: 'flex-end', gap: 4 }}>
+                {draws.map(({ pair, santa }) => {
+                  const on = forSanta.includes(santa.id);
+                  return (
+                    <label key={santa.id} className="santa-tick">
+                      <input type="checkbox" checked={on} onChange={e => setForSanta(e.target.checked ? [...forSanta, santa.id] : forSanta.filter(x => x !== santa.id))} />
+                      <SantaTickLabel giverId={pair.giver_id} santaName={santa.name} several={draws.length > 1} />
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+            <div className="row full">
+              <button className="btn" type="submit">Enregistrer</button>
+              <button className="btn ghost" type="button" onClick={() => setOpen(false)}>Annuler</button>
             </div>
-          )}
-          <div className="row full">
-            <button className="btn" type="submit">Enregistrer</button>
-            <button className="btn ghost" type="button" onClick={() => setOpen(false)}>Annuler</button>
-          </div>
-        </form>
-      ) : <div className="row"><button className="btn alt sm" onClick={() => setOpen(true)}>J’offre autre chose</button></div>}
+          </form>
+        </section>
+      ) : <div><button className="btn alt sm" onClick={() => setOpen(true)}>＋ J’offre autre chose</button></div>}
       {asking && <CompleteOrContinue santaId={asking.santaId} giverId={asking.giverId} receiver={person.name} onClose={() => setAsking(null)} />}
-    </section>
+    </>
   );
 }

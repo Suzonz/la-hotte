@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useHotte } from '@/lib/hotte';
 import { byName, eur, hostOf } from '@/lib/format';
 import type { Claim } from '@/lib/types';
-import { Modal } from './Modal';
+import { StopClaim } from './StopClaim';
 import { SantaTracker } from './santa/SantaGifts';
 
 type Sort = 'person' | 'group';
@@ -12,7 +12,6 @@ type Sort = 'person' | 'group';
 /** One thing I give: what, for whom, 🎅 if it is for my Secret Santa, and a way to cancel it. */
 function ClaimLine({ claim: c, showWho }: { claim: Claim; showWho: boolean }) {
   const { d, data, actions, run } = useHotte();
-  const [confirm, setConfirm] = useState(false);
   const w = c.wish_id ? data.wishes.find(x => x.id === c.wish_id) : undefined;
   const kind = c.kind === 'buy' ? 'J’offre' : c.kind === 'part' ? 'Je participe' : 'Hors liste';
   const received = !!w?.received_at;   // good news, not a warning
@@ -20,7 +19,6 @@ function ClaimLine({ claim: c, showWho }: { claim: Claim; showWho: boolean }) {
   const who = d.personById.get(c.recipient_id)!;
   const forSanta = data.santaGifts.some(x => x.claim_id === c.id);
   const title = w?.title ?? (c.note || 'Une surprise');
-  const stopLabel = c.kind === 'part' ? 'Je ne participe plus' : 'Je ne l’offre plus';
   // The box follows the click at once; the saved value takes over after the reload.
   const [offeredNow, setOfferedNow] = useState<boolean | null>(null);
   const offered = offeredNow ?? !!c.offered_at;
@@ -39,7 +37,7 @@ function ClaimLine({ claim: c, showWho }: { claim: Claim; showWho: boolean }) {
         </span>
         <span className="row" style={{ justifyContent: 'flex-end' }}>
           {c.amount ? <span className="a">{eur(c.amount)}</span> : null}
-          {!c.offered_at && <button className="btn ghost sm" onClick={() => setConfirm(true)}>{stopLabel}</button>}
+          {!c.offered_at && <StopClaim claim={c} title={title} />}
         </span>
       </div>
       <label className="tick">
@@ -50,15 +48,6 @@ function ClaimLine({ claim: c, showWho }: { claim: Claim; showWho: boolean }) {
         }} />
         Offert
       </label>
-      {confirm && (
-        <Modal title={c.kind === 'part' ? `Ne plus participer à « ${title} » ?` : `Ne plus offrir « ${title} » ?`} onClose={() => setConfirm(false)}>
-          <p className="note">Le cadeau redevient libre pour les autres.</p>
-          <div className="row modal-actions">
-            <button className="btn ghost" onClick={() => setConfirm(false)}>Annuler</button>
-            <button className="btn danger" onClick={() => run(() => actions.cancelClaim(c.id), `« ${title} » annulé`).then(() => setConfirm(false))}>{stopLabel}</button>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }

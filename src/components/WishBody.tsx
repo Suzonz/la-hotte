@@ -1,8 +1,8 @@
 import { eur, hostOf, WANT_LABEL, wantStars } from '@/lib/format';
 import type { Wish } from '@/lib/types';
 
-/** An envie's name, price, level and details. `tools` sit right after the name (✏️ 🗑️). */
-export function WishBody({ wish, extra, tools }: { wish: Wish; extra?: React.ReactNode; tools?: React.ReactNode }) {
+/** An envie's name, price, level and details. `tools` sit right after the name (✏️ 🗑️); `starsOnly` drops the words after the stars. */
+export function WishBody({ wish, extra, tools, starsOnly }: { wish: Wish; extra?: React.ReactNode; tools?: React.ReactNode; starsOnly?: boolean }) {
   return (
     <>
       <div className="ihead">
@@ -13,7 +13,7 @@ export function WishBody({ wish, extra, tools }: { wish: Wish; extra?: React.Rea
         {wish.price != null && <span className="price">{eur(wish.price)}</span>}
       </div>
       <div className="meta">
-        <span className="want" title={WANT_LABEL[wish.stars]}>{wantStars(wish.stars)} <span>{WANT_LABEL[wish.stars]}</span></span>
+        <span className="want" title={WANT_LABEL[wish.stars]}>{wantStars(wish.stars)}{!starsOnly && <> <span>{WANT_LABEL[wish.stars]}</span></>}</span>
         {wish.link && <a href={wish.link} target="_blank" rel="noopener noreferrer">{hostOf(wish.link) || 'Voir le lien'}</a>}
         {extra}
       </div>
