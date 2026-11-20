@@ -124,7 +124,7 @@ function OffListForm({ person }: { person: Person }) {
               <input value={amount} inputMode="decimal" onChange={e => setAmount(e.target.value)} />
             </label>
             {draws.length > 0 && (
-              <div className="stack" style={{ justifyContent: 'flex-end', gap: 4 }}>
+              <div className="stack end gap-4">
                 {draws.map(({ pair, santa }) => {
                   const on = forSanta.includes(santa.id);
                   return (

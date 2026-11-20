@@ -106,8 +106,11 @@ Les tests d'interface lancent leur propre serveur (port 3124) relié à la base 
 ```bash
 npm run test:db     # règles de confidentialité, sur un vrai Postgres local (PGlite), sans Docker
 npm run test:e2e    # tests d'interface (Playwright), avec Supabase local
-npm run typecheck
+npm run typecheck   # TypeScript
+npm run lint        # ESLint (règles Next.js et TypeScript)
 ```
+
+À chaque envoi sur GitHub, **GitHub Actions** relance tout (lint, types, base, build, puis tests d’interface avec un Supabase local) : voir l’onglet *Actions* du dépôt.
 
 `tests/schema.test.mjs` vérifie que le schéma unique donne exactement la même base que les dix fichiers d’origine.
 
@@ -124,7 +127,10 @@ npm run typecheck
 supabase/migrations/   le schéma complet, en un seul fichier (la référence)
 supabase/archive/      les dix étapes du développement, gardées pour l’historique
 src/app/               pages : accueil, /login, /auth/callback, /rejoindre/[code]
-src/lib/hotte.tsx      chargement des données, calculs, toutes les actions
+src/lib/hotte.tsx      état de l’appli (useHotte) : relie les trois fichiers suivants
+src/lib/data.ts        chargement de tout ce que la personne a le droit de voir
+src/lib/derive.ts      calculs (qui voit quoi, qui offre quoi) à partir de ces données
+src/lib/actions.ts     toutes les actions (ajouter une envie, réserver, tirage…)
 src/components/        écrans : ListPage, ManageWishes, GroupView, GroupSettings, PersonView, WishCard, GiftsView…
 src/components/santa/  Secret Santa : encadré du groupe, création, carte, participants, suivi des cadeaux
 tests/                 règles de la base (PGlite) et tests d'interface (tests/e2e, Playwright)
@@ -143,3 +149,7 @@ src/middleware.ts      session et redirection vers /login
 
 - Les anniversaires (une liste par occasion, avec sa date) ne sont pas encore prévus : on réutilise la même liste d'une fête à l'autre.
 - Le récapitulatif par e-mail part à heure fixe en UTC : 8 h à Paris en hiver, 9 h en été.
+
+## Licence
+
+MIT, voir [LICENSE](LICENSE).

@@ -46,7 +46,7 @@ export function LoginForm({ next, linkError, deleted }: { next: string; linkErro
             <p className="note">Rien reçu après une minute ? Regarde dans les indésirables, ou <button className="linkish" onClick={() => setState('idle')}>essaie une autre adresse</button>.</p>
           </>
         ) : (
-          <form className="stack" style={{ alignItems: 'stretch' }} onSubmit={e => { e.preventDefault(); send(); }}>
+          <form className="stack stretch" onSubmit={e => { e.preventDefault(); send(); }}>
             <h1>{invited ? 'On t’invite dans un groupe' : 'Connexion'}</h1>
             <p className="sub">{invited
               ? 'Entre ton adresse e-mail : tu recevras un lien pour te connecter, puis tu rejoindras le groupe.'
@@ -59,7 +59,7 @@ export function LoginForm({ next, linkError, deleted }: { next: string; linkErro
             <button className="btn" type="submit" disabled={state === 'sending'}>{state === 'sending' ? 'Envoi…' : 'Recevoir mon lien de connexion'}</button>
           </form>
         )}
-        <p className="note" style={{ textAlign: 'center' }}><a href="/confidentialite">Confidentialité</a></p>
+        <p className="note text-center"><a href="/confidentialite">Confidentialité</a></p>
       </div>
     </div>
   );

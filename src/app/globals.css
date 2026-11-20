@@ -223,3 +223,28 @@ label.tick input { width: 17px; height: 17px; accent-color: var(--pine); margin:
 .card-actions .push { margin-left: auto }
 .h1-note { font: 500 15px var(--body); color: var(--muted); letter-spacing: 0; white-space: nowrap }
 .santa-line { margin: 6px 0 0; font-weight: 600 }
+.link-as-btn { text-align: center; text-decoration: none }
+.page-brand { margin-block: 20px }
+.page-back { margin-block: 24px }
+.wrap.narrow { max-width: 680px }
+
+/* Small layout helpers (instead of inline styles in the components). */
+.stretch { align-items: stretch }
+.center-items { align-items: center }
+.end { justify-content: flex-end }
+.between { justify-content: space-between }
+.gap-2 { gap: 2px }
+.gap-4 { gap: 4px }
+.mt-6 { margin-top: 6px }
+.mt-8 { margin-top: 8px }
+.ml-6 { margin-left: 6px }
+.pb-24 { padding-block: 24px }
+.fs-13 { font-size: 13px }
+.block { display: block }
+.no-bullets { list-style: none }
+.text-center { text-align: center }
+.w-90 { width: 90px }
+.mw-200 { max-width: 200px }
+.mw-240 { max-width: 240px }
+.grow-220 { flex: 1 1 220px }
+.inline-label { flex-direction: row; align-items: center; gap: 8px }

@@ -19,7 +19,7 @@ export function SantaSection({ group, onOpenPerson }: { group: Group; onOpenPers
 
   return (
     <section className="panel">
-      <div className="listhead" style={{ alignItems: 'center' }}>
+      <div className="listhead center-items">
         <h2>🎅 Secret Santa</h2>
         {!showChoice && <button className="linkish" onClick={() => setChoosing(true)}>+ Créer un autre Secret Santa</button>}
       </div>
@@ -27,7 +27,7 @@ export function SantaSection({ group, onOpenPerson }: { group: Group; onOpenPers
       {santas.map(s => <SantaCard key={s.id} santa={s} group={group} onOpenPerson={onOpenPerson} />)}
 
       {showChoice ? (
-        <div className="stack" style={{ alignItems: 'stretch' }}>
+        <div className="stack stretch">
           {santas.length === 0 && <p className="note">Chacun offre un cadeau à une personne tirée au sort, sans savoir qui lui offre le sien. Tout est dévoilé le lendemain de l’échange.</p>}
           <div className="mode-choice">
             {(Object.keys(MODES) as SantaMode[]).map(m => (

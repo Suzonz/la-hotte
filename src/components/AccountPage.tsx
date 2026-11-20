@@ -64,9 +64,9 @@ export function AccountPage() {
         {myGroupsCreated.length > 0 && (
           <p className="note">Les groupes que tu as créés ({myGroupsCreated.map(g => g.name).join(', ')}) ne disparaissent pas : ils sont confiés au membre arrivé le plus tôt après toi. Un groupe où tu es seul est supprimé.</p>
         )}
-        <form className="stack" style={{ alignItems: 'stretch' }} onSubmit={e => { e.preventDefault(); if (typed === CONFIRM_WORD) remove(); }}>
+        <form className="stack stretch" onSubmit={e => { e.preventDefault(); if (typed === CONFIRM_WORD) remove(); }}>
           <label htmlFor="confirm-delete">Pour confirmer, écris {CONFIRM_WORD}
-            <input id="confirm-delete" value={typed} autoComplete="off" onChange={e => setTyped(e.target.value.toUpperCase())} style={{ maxWidth: 240 }} />
+            <input id="confirm-delete" value={typed} autoComplete="off" onChange={e => setTyped(e.target.value.toUpperCase())} className="mw-240" />
           </label>
           <div><button className="btn danger" type="submit" disabled={typed !== CONFIRM_WORD}>Supprimer définitivement mon compte</button></div>
         </form>

@@ -48,8 +48,8 @@ export function WishCard({ person, wish, claims }: { person: Person; wish: Wish;
 
   const partForm = (
     <form className="row" onSubmit={e => { e.preventDefault(); submitPart(); }}>
-      <label style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>Je mets
-        <input value={amount} inputMode="decimal" placeholder="20" style={{ width: 90 }} autoFocus onChange={e => setAmount(e.target.value)} /> €
+      <label className="inline-label">Je mets
+        <input value={amount} inputMode="decimal" placeholder="20" className="w-90" autoFocus onChange={e => setAmount(e.target.value)} /> €
       </label>
       <button className="btn sm" type="submit">Valider</button>
       <button className="btn ghost sm" type="button" onClick={() => setPartOpen(false)}>Annuler</button>

@@ -70,7 +70,7 @@ export function SantaEditor({ group, mode, santa, onDone }: { group: Group; mode
         <input type="date" value={form.eventDate} onChange={e => set('eventDate', e.target.value)} />
       </label>
       <label className="full">Révélation : tout le monde voit qui offrait à qui à partir du
-        <input type="date" value={form.revealDate} min={form.eventDate} onChange={e => set('revealDate', e.target.value)} style={{ maxWidth: 200 }} />
+        <input type="date" value={form.revealDate} min={form.eventDate} onChange={e => set('revealDate', e.target.value)} className="mw-200" />
       </label>
 
       {!locked && (
@@ -79,7 +79,7 @@ export function SantaEditor({ group, mode, santa, onDone }: { group: Group; mode
           <div className="row">{adults.map(pick)}</div>
           {kids.length > 0 && (
             <>
-              <span className="eyebrow" style={{ marginTop: 6 }}>Enfants · à cocher seulement s’ils participent</span>
+              <span className="eyebrow mt-6">Enfants · à cocher seulement s’ils participent</span>
               <div className="row">{kids.map(pick)}</div>
             </>
           )}
@@ -89,7 +89,7 @@ export function SantaEditor({ group, mode, santa, onDone }: { group: Group; mode
 
       {creatingDraw && chosen.length >= 3 && (
         <details className="full">
-          <summary className="linkish" style={{ listStyle: 'none' }}>Exclusions (facultatif){exclusions.length ? ` · ${exclusions.length}` : ''}</summary>
+          <summary className="linkish no-bullets">Exclusions (facultatif){exclusions.length ? ` · ${exclusions.length}` : ''}</summary>
           <ExclusionsEditor people={chosen} value={exclusions} onChange={setExclusions} />
         </details>
       )}

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { daysToChristmas } from '@/lib/format';
 import { getSupabase } from '@/lib/supabase/client';
@@ -32,7 +33,7 @@ export function Header({ tabs }: { tabs: Tab[] }) {
     <header className="top">
       <div className="wrap">
         <div className="brandrow">
-          <a className="brand" href="/"><Logo />La Hotte</a>
+          <Link className="brand" href="/"><Logo />La Hotte</Link>
           <div className="row">
             {days != null && <span className="countdown">{days === 0 ? 'C’est Noël !' : <>J-{days}<span className="hide-sm"> avant Noël</span></>}</span>}
             {tabs.length > 0 && <button className="btn ghost sm" onClick={signOut}>Se déconnecter</button>}

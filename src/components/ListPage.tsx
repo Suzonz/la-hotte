@@ -40,7 +40,7 @@ function KidParents({ kid, onLeft }: { kid: Person; onLeft: () => void }) {
       )}
       {adding ? (
         candidates.length ? (
-          <div className="stack" style={{ alignItems: 'stretch' }}>
+          <div className="stack stretch">
             <span className="eyebrow">Avec qui partager la gestion ?</span>
             <div className="row">
               {candidates.map(p => (
@@ -72,7 +72,7 @@ export function ListPage({ person, onDeleted }: { person: Person; onDeleted: () 
         <span className="eyebrow">{isMe ? 'Ma liste' : `Liste gérée par ${d.parentNames(person)}`}</span>
         {renaming ? (
           <form className="row" onSubmit={e => { e.preventDefault(); run(() => actions.renamePerson(person.id, name), 'Prénom modifié').then(r => r.ok && setRenaming(false)); }}>
-            <input aria-label="Prénom" value={name} maxLength={40} style={{ maxWidth: 240 }} autoFocus onChange={e => setName(e.target.value)} />
+            <input aria-label="Prénom" value={name} maxLength={40} className="mw-240" autoFocus onChange={e => setName(e.target.value)} />
             <button className="btn sm" type="submit">Enregistrer</button>
             <button className="btn ghost sm" type="button" onClick={() => setRenaming(false)}>Annuler</button>
           </form>

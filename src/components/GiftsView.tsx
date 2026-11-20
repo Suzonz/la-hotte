@@ -28,14 +28,14 @@ function ClaimLine({ claim: c, showWho }: { claim: Claim; showWho: boolean }) {
       <div className="gmain">
         <span className="t">
           <span className="eyebrow">{kind}{showWho ? ` · pour ${who.name}` : ''}</span>
-          {forSanta && <span className="chip pot" style={{ marginLeft: 6 }}>🎅 Secret Santa</span>}
+          {forSanta && <span className="chip pot ml-6">🎅 Secret Santa</span>}
           <br />
           <span className="gtitle">{title}</span>
           {received && <span className="who"> · reçu</span>}
           {warn && <span className="warn">{warn}</span>}
-          {w?.link && <> <a href={w.link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13 }}>{hostOf(w.link)}</a></>}
+          {w?.link && <> <a href={w.link} target="_blank" rel="noopener noreferrer" className="fs-13">{hostOf(w.link)}</a></>}
         </span>
-        <span className="row" style={{ justifyContent: 'flex-end' }}>
+        <span className="row end">
           {c.amount ? <span className="a">{eur(c.amount)}</span> : null}
           {!c.offered_at && <StopClaim claim={c} title={title} />}
         </span>
@@ -54,7 +54,7 @@ function ClaimLine({ claim: c, showWho }: { claim: Claim; showWho: boolean }) {
 
 /** « Ce que j'offre » : everything I give, in one place, only visible to me. */
 export function GiftsView({ onOpen }: { onOpen: (personId: string, groupId?: string) => void }) {
-  const { d, data } = useHotte();
+  const { d } = useHotte();
   const [sort, setSort] = useState<Sort>('person');
   const all = d.myClaims.filter(c => d.personById.has(c.recipient_id));
   // Given gifts go to « Ce que j'ai offert », at the bottom.
@@ -113,7 +113,7 @@ export function GiftsView({ onOpen }: { onOpen: (personId: string, groupId?: str
             const sub = sec.claims.reduce((s, c) => s + (c.amount ?? 0), 0);
             return (
               <section key={sec.key} className="panel">
-                <div className="row" style={{ justifyContent: 'space-between' }}>
+                <div className="row between">
                   <h2>{sec.title}</h2>
                   <span className="row">
                     {sub > 0 && <span className="who">{eur(sub)}</span>}

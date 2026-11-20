@@ -27,7 +27,7 @@ export function SantaGiftToggle({ claim }: { claim: Claim }) {
   const draws = d.myDraws.filter(x => x.pair.receiver_id === claim.recipient_id && !d.isRevealed(x.santa));
   if (claim.claimer_id !== d.me || !draws.length) return null;
 
-  const settle = (santaId: string) => setPending(p => { const { [santaId]: _, ...rest } = p; return rest; });
+  const settle = (santaId: string) => setPending(p => { const rest = { ...p }; delete rest[santaId]; return rest; });
 
   return (
     <>
@@ -98,7 +98,7 @@ export function SantaTracker({ onOpenPerson }: { onOpenPerson: (personId: string
         return (
           <div key={key} className="tracker">
             <div className="tracker-head">
-              <div className="stack" style={{ gap: 2 }}>
+              <div className="stack gap-2">
                 <span>{giver?.user_id === d.me ? '' : `${giver?.name} → `}<b>{receiver?.name ?? 'quelqu’un'}</b> <span className="who">· {santa.name} · {frDay(santa.event_date)}{santa.budget != null && ` · ${eur(santa.budget)}`}</span></span>
                 <span className="who">{gifts.length ? `${gifts.length} cadeau${gifts.length > 1 ? 'x' : ''} choisi${gifts.length > 1 ? 's' : ''}` : 'Pas encore de cadeau choisi'}</span>
               </div>

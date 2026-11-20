@@ -2,12 +2,14 @@
   "name": "la-hotte",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Listes de Noël partagées : chacun note ses envies, réserve ou cotise pour celles des autres, sans jamais voir ce qu'on lui prépare.",
   "scripts": {
     "dev": "next dev -p 3123",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
     "test:db": "node --test tests/rls.test.mjs tests/santa.test.mjs tests/schema.test.mjs tests/account.test.mjs tests/family.test.mjs tests/digest.test.mjs",
     "test:e2e": "playwright test",
     "db:start": "supabase start -x studio,imgproxy,edge-runtime,logflare,vector,storage-api,postgres-meta,supavisor",
@@ -22,10 +24,13 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.16",
+    "@eslint/eslintrc": "^3.3.7",
     "@playwright/test": "^1.65.1",
     "@types/node": "^22.20.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.29",
     "supabase": "^2.122.1",
     "typescript": "^5.9.3"
   },

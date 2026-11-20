@@ -1,0 +1,50 @@
+# Runs on every push and pull request. Never touches the real Supabase project:
+# the database tests use PGlite, the interface tests a local Supabase in Docker.
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    name: Lint, types, base de données, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:db
+      - run: npm run build
+        env:
+          # Placeholders: the build only needs them to be set.
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: build-placeholder
+
+  e2e:
+    name: Tests d'interface
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run db:start
+      - run: npm run test:e2e
+      - name: Captures et traces en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 7

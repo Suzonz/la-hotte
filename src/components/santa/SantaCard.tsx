@@ -32,7 +32,7 @@ export function SantaCard({ santa: s, group, onOpenPerson }: { santa: Santa; gro
   return (
     <article className="santa-card">
       <div className="listhead">
-        <div className="stack" style={{ gap: 2 }}>
+        <div className="stack gap-2">
           <h3 className="ititle">{s.name}</h3>
           <span className="who">
             {frDay(s.event_date)} · {participants.map(p => p.name).join(', ')}{s.budget != null && ` · ${eur(s.budget)}`}
@@ -116,7 +116,7 @@ function MyDraw({ santa: s, giver, participants, onOpenPerson }: { santa: Santa;
   if (pair && !correcting) {
     return (
       <div className="draw-line">
-        <span className="row" style={{ gap: 4 }}>
+        <span className="row gap-4">
           {isMe ? 'Tu offres à' : `${giver.name} offre à`} <b>{receiver?.name ?? 'quelqu’un'}</b>
           {s.mode === 'manual' && pair.entered_by === d.me && (
             <button className="icon-btn" title="Corriger" aria-label="Corriger la personne tirée" onClick={() => { setPick(pair.receiver_id); setCorrecting(true); }}>✏️</button>
@@ -135,7 +135,7 @@ function MyDraw({ santa: s, giver, participants, onOpenPerson }: { santa: Santa;
   }
 
   return (
-    <form className="stack" style={{ alignItems: 'stretch', gap: 4 }}
+    <form className="stack stretch gap-4"
       onSubmit={e => { e.preventDefault(); if (pick) run(() => actions.enterPair(s.id, giver.id, pick), 'C’est noté').then(r => r.ok && setCorrecting(false)); }}>
       <div className="row">
         <b>{isMe ? 'Qui as-tu tiré ?' : `Qui ${giver.name} a-t-il tiré ?`}</b>
@@ -165,7 +165,7 @@ function OrganizerLine({ santa: s, participants }: { santa: Santa; participants:
 
   const saved = d.exclusionsOf(s.id).map(e => [e.a, e.b] as [string, string]);
   return (
-    <div className="stack" style={{ alignItems: 'stretch' }}>
+    <div className="stack stretch">
       <div className="row">
         <button className="btn" disabled={participants.length < 3} onClick={() => run(() => actions.drawSanta(s.id), 'Tirage fait 🎉')}>🎲 Tirer au sort</button>
         <button className="linkish" onClick={() => setShowExclusions(x => !x)}>Exclusions{saved.length ? ` · ${saved.length}` : ''}</button>

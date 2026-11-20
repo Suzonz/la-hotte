@@ -38,7 +38,7 @@ export function GroupDetail({ group: g, onClosed }: { group: Group; onClosed: ()
       <div className="listhead">
         {renaming ? (
           <form className="row" onSubmit={e => { e.preventDefault(); run(() => actions.renameGroup(g.id, name), 'Groupe renommé').then(r => r.ok && setRenaming(false)); }}>
-            <input aria-label="Nom du groupe" value={name} maxLength={50} style={{ maxWidth: 240 }} onChange={e => setName(e.target.value)} autoFocus />
+            <input aria-label="Nom du groupe" value={name} maxLength={50} className="mw-240" onChange={e => setName(e.target.value)} autoFocus />
             <button className="btn sm" type="submit">Enregistrer</button>
             <button className="btn ghost sm" type="button" onClick={() => setRenaming(false)}>Annuler</button>
           </form>
@@ -51,7 +51,7 @@ export function GroupDetail({ group: g, onClosed }: { group: Group; onClosed: ()
         {isCreator && !renaming && <button className="btn ghost sm" onClick={() => { setName(g.name); setRenaming(true); }}>Renommer</button>}
       </div>
 
-      <div className="stack" style={{ alignItems: 'stretch' }}>
+      <div className="stack stretch">
         <span className="eyebrow">Membres ({members.length})</span>
         <ul className="members">
           {sorted.map(m => (
@@ -68,17 +68,17 @@ export function GroupDetail({ group: g, onClosed }: { group: Group; onClosed: ()
           : `Tu peux retirer les personnes que tu as ajoutées toi-même. Pour les autres, demande à ${nameOf(g.created_by)}.`}</p>
       </div>
 
-      <div className="stack" style={{ alignItems: 'stretch' }}>
+      <div className="stack stretch">
         <label htmlFor={linkId}>Lien d’invitation du groupe</label>
         <div className="row">
-          <input id={linkId} value={link} readOnly style={{ flex: '1 1 220px' }} onFocus={e => e.target.select()} />
+          <input id={linkId} value={link} readOnly className="grow-220" onFocus={e => e.target.select()} />
           <button className="btn sm" type="button" onClick={copy}>Copier le lien</button>
         </div>
         <p className="note">Envoie ce lien par message ou par e-mail. En l’ouvrant, la personne se connecte avec son adresse e-mail et rejoint le groupe.</p>
         {isCreator && <div><button className="linkish" onClick={() => setConfirm('relink')}>Changer le lien d’invitation</button></div>}
       </div>
 
-      <div className="stack" style={{ alignItems: 'stretch' }}>
+      <div className="stack stretch">
         <span className="eyebrow">Ajouter quelqu’un que tu connais déjà</span>
         {candidates.length ? (
           <form className="stack" onSubmit={e => {

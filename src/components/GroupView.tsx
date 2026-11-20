@@ -36,7 +36,7 @@ export function GroupView({ group, initialSettings, onOpenPerson, onOpenMine }: 
       <li key={p.id}>
         <button className="member-card" onClick={() => (isMe ? onOpenMine() : onOpenPerson(p.id))}>
           <span className="avatar" aria-hidden="true">{p.name.slice(0, 1).toUpperCase()}</span>
-          <span className="stack" style={{ gap: 2 }}>
+          <span className="stack gap-2">
             <b>{isMe ? `${p.name} (toi)` : p.name}</b>
             <span className="who">
               {plural(n, 'envie')} dans ce groupe

@@ -11,7 +11,7 @@ export function ExclusionsEditor({ people, value, onChange }: { people: Person[]
   const nameOf = (id: string) => people.find(p => p.id === id)?.name ?? '?';
   const options = (exclude?: string) => people.filter(p => p.id !== exclude).map(p => <option key={p.id} value={p.id}>{p.name}</option>);
   return (
-    <div className="stack" style={{ alignItems: 'stretch', marginTop: 8 }}>
+    <div className="stack stretch mt-8">
       <p className="note">Ces personnes ne se tireront pas entre elles : un couple, ou deux personnes qui se sont offert un cadeau l’an dernier.</p>
       {value.map(([x, y]) => (
         <div key={x + y} className="gline">
@@ -38,7 +38,7 @@ export function ParticipantsAfterDraw({ santa: s, group, participants }: { santa
   const mode = s.mode as SantaMode;
 
   return (
-    <div className="stack" style={{ alignItems: 'stretch' }}>
+    <div className="stack stretch">
       <span className="eyebrow">Participants ({participants.length})</span>
       <ul className="members">
         {participants.map(p => (

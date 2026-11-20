@@ -71,7 +71,7 @@ export function WishForm({ draft, onChange, onSubmit, submitLabel, onCancel }: P
       </label>
       <fieldset className={'full groups' + (err.groups ? ' invalid' : '')}>
         <legend className="eyebrow">Qui verra cette envie ?</legend>
-        <div className="row" id={id + 'groups'} tabIndex={-1} role="group" aria-invalid={!!err.groups}>
+        <div className="row" id={id + 'groups'} tabIndex={-1} role="group" aria-describedby={err.groups ? id + 'groups-error' : undefined}>
           <label className={'gpick private' + (draft.privateOnly ? ' on' : '')} htmlFor={id + 'private'}>
             <input type="checkbox" id={id + 'private'} checked={draft.privateOnly} onChange={e => togglePrivate(e.target.checked)} />
             Seulement moi pour l’instant
@@ -86,7 +86,7 @@ export function WishForm({ draft, onChange, onSubmit, submitLabel, onCancel }: P
             );
           })}
         </div>
-        {err.groups && <span className="field-error" role="alert">{err.groups}</span>}
+        {err.groups && <span className="field-error" id={id + 'groups-error'} role="alert">{err.groups}</span>}
         {d.myGroups.length === 0 && <p className="note">Tu n’as pas encore de groupe : garde-la pour toi, tu pourras la partager plus tard avec « Modifier ».</p>}
       </fieldset>
       <div className="row full">

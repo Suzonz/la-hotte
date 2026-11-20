@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
 import { Logo } from './Header';
@@ -34,10 +35,10 @@ export function JoinGroup({ code, invite, myName }: { code: string; invite: Invi
           <>
             <h1>Lien d’invitation invalide</h1>
             <p className="sub">Le groupe a peut-être été supprimé, ou son lien a été changé. Demande un nouveau lien à la personne qui t’a invité(e).</p>
-            <a className="btn" href="/" style={{ textAlign: 'center', textDecoration: 'none' }}>Aller à mes envies</a>
+            <Link className="btn link-as-btn" href="/">Aller à mes envies</Link>
           </>
         ) : (
-          <form className="stack" style={{ alignItems: 'stretch' }} onSubmit={e => { e.preventDefault(); join(); }}>
+          <form className="stack stretch" onSubmit={e => { e.preventDefault(); join(); }}>
             <span className="eyebrow">Invitation</span>
             <h1>Rejoindre « {invite.group_name} »</h1>
             <p className="sub">

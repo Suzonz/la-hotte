@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Logo } from '@/components/Header';
 
 export const metadata = { title: 'Confidentialité · La Hotte' };
@@ -7,8 +8,8 @@ const CONTACT = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
 
 export default function PrivacyPage() {
   return (
-    <main className="wrap" style={{ maxWidth: 680 }}>
-      <a className="brand" href="/" style={{ marginBlock: 20 }}><Logo />La Hotte</a>
+    <main className="wrap narrow">
+      <Link className="brand page-brand" href="/"><Logo />La Hotte</Link>
       <h1>Confidentialité</h1>
       <p className="sub">La Hotte est une petite appli pour partager des listes de cadeaux entre proches. Voici, simplement, ce qu’elle garde et pourquoi.</p>
 
@@ -42,7 +43,7 @@ export default function PrivacyPage() {
           <li>Pour toute question : {CONTACT ? <a href={`mailto:${CONTACT}`}>{CONTACT}</a> : 'écris à la personne qui t’a invité·e dans La Hotte.'}</li>
         </ul>
       </section>
-      <p style={{ marginBlock: 24 }}><a href="/">← Retour à La Hotte</a></p>
+      <p className="page-back"><Link href="/">← Retour à La Hotte</Link></p>
     </main>
   );
 }
