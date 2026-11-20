@@ -8,7 +8,7 @@ import { WishCard } from './WishCard';
 import { Modal } from './Modal';
 
 /** The parents of a child: all equal, each can add the other or take them off. */
-function KidParents({ kid }: { kid: Person }) {
+function KidParents({ kid, onLeft }: { kid: Person; onLeft: () => void }) {
   const { d, data, actions, run } = useHotte();
   const [adding, setAdding] = useState(false);
   const [confirm, setConfirm] = useState<string | null>(null);
@@ -34,7 +34,7 @@ function KidParents({ kid }: { kid: Person }) {
           <p className="note">{confirm === d.me ? 'Tu ne verras plus sa liste ni ce qui est réservé dessus.' : `${nameOf(confirm)} ne verra plus sa liste ni ce qui est réservé dessus.`}</p>
           <div className="row modal-actions">
             <button className="btn ghost" onClick={() => setConfirm(null)}>Annuler</button>
-            <button className="btn danger" onClick={() => run(() => actions.removeParent(kid.id, confirm), confirm === d.me ? `Tu ne gères plus la liste de ${kid.name}` : `${nameOf(confirm)} ne gère plus la liste de ${kid.name}`).then(() => setConfirm(null))}>{confirm === d.me ? 'Me retirer' : 'Retirer'}</button>
+            <button className="btn danger" onClick={() => run(() => actions.removeParent(kid.id, confirm), confirm === d.me ? `Tu ne gères plus la liste de ${kid.name}` : `${nameOf(confirm)} ne gère plus la liste de ${kid.name}`).then(r => { const me = confirm === d.me; setConfirm(null); if (r.ok && me) onLeft(); })}>{confirm === d.me ? 'Me retirer' : 'Retirer'}</button>
           </div>
         </Modal>
       )}
@@ -99,7 +99,7 @@ export function ListPage({ person, onDeleted }: { person: Person; onDeleted: () 
         </section>
       )}
 
-      {!isMe && <KidParents kid={person} />}
+      {!isMe && <KidParents kid={person} onLeft={onDeleted} />}
 
 
       {isMe

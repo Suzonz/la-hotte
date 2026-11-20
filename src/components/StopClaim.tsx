@@ -25,7 +25,7 @@ export function StopClaim({ claim: c, title }: { claim: Claim; title: string }) 
           <p className="note">{what}{forSanta && ' Il est aussi retiré de ton Secret Santa.'}</p>
           <div className="row modal-actions">
             <button className="btn ghost" onClick={() => setConfirm(false)}>Annuler</button>
-            <button className="btn danger" onClick={() => run(() => actions.cancelClaim(c.id), `« ${title} » annulé`).then(() => setConfirm(false))}>{label}</button>
+            <button className="btn danger" onClick={() => run(() => actions.cancelClaim(c.id), c.kind === 'part' ? `Tu ne participes plus à « ${title} »` : `Tu n’offres plus « ${title} »`).then(() => setConfirm(false))}>{label}</button>
           </div>
         </Modal>
       )}

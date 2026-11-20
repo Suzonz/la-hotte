@@ -41,7 +41,7 @@ export function WishCard({ person, wish, claims }: { person: Person; wish: Wish;
       <>
         <span className="chip pot">Cagnotte {eur(pot)}{wish.price ? ` / ${eur(wish.price)}` : ''}</span>
         {wish.price ? <span className="bar" title={`${Math.round((pot / wish.price) * 100)} %`}><i style={{ width: `${Math.min(100, (pot / wish.price) * 100)}%` }} /></span> : null}
-        <span className="who">{parts.map(c => `${d.whoName(c.claimer_id)} ${eur(c.amount)}`).join(', ')}</span>
+        <span className="who">{parts.map(c => `${c.claimer_id === d.me ? 'Toi' : d.whoName(c.claimer_id)} ${eur(c.amount)}`).join(', ')}</span>
       </>
     );
   } else status = <span className="chip free">Libre</span>;

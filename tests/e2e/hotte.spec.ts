@@ -309,8 +309,15 @@ test('deux parents : la liste de l’enfant se partage', async ({ browser }) => 
   await expect(dialog).toContainText('Retirer Papa des parents de Léo ?');
   await dialog.getByRole('button', { name: 'Annuler' }).click();
   await expect(mum.locator('ul.members')).toContainText('Papa');
-  await mum.locator('ul.members li', { hasText: 'Papa' }).getByRole('button', { name: 'Retirer' }).click();
-  await dialog.getByRole('button', { name: 'Retirer' }).click();
+  // Papa takes himself off: he lands back on his own list.
+  await dad.reload();
+  await menu(dad, /Ma liste/, 'Liste de Léo');
+  await dad.locator('ul.members li', { hasText: 'Toi' }).getByRole('button', { name: 'Me retirer' }).click();
+  await expect(dad.getByRole('dialog')).toContainText('Ne plus gérer la liste de Léo ?');
+  await dad.getByRole('dialog').getByRole('button', { name: 'Me retirer' }).click();
+  await expect(dad.getByRole('heading', { name: 'Les envies de Papa' })).toBeVisible();
+  await mum.reload();
+  await menu(mum, /Ma liste/, 'Liste de Léo');
   await expect(mum.locator('ul.members')).not.toContainText('Papa');
 });
 
