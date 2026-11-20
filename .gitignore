@@ -12,3 +12,7 @@ test-results/
 playwright-report/
 .tmp-*/
 .next-build/
+
+# Local tools and the old claude.ai prototype: not for GitHub
+.claude/
+prototype/
