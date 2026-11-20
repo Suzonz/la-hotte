@@ -183,6 +183,8 @@ test('Secret Santa : tirage au sort, chacun ne voit que sa personne, suivi du ca
   await shot(bob, '5-ce-que-j-offre-secret-santa');
 
   await bob.getByRole('button', { name: 'Je ne l’offre plus' }).first().click();
+  await expect(bob.getByRole('dialog')).toContainText('Il est aussi retiré de ton Secret Santa.');
+  await shot(bob, '5a-confirmation-arret');
   await bob.getByRole('dialog').getByRole('button', { name: 'Je ne l’offre plus' }).click();
   await expect(status).toHaveValue('progress');   // back to « rien de choisi »
 
@@ -192,7 +194,6 @@ test('Secret Santa : tirage au sort, chacun ne voit que sa personne, suivi du ca
   await bob.getByRole('button', { name: 'J’offre autre chose' }).click();
   await bob.getByLabel('Ton idée').fill('Un livre de cuisine');
   await bob.getByRole('button', { name: 'Enregistrer' }).click();
-  if (await bob.getByRole('dialog').isVisible()) await bob.getByRole('button', { name: 'Je continue' }).click();
   const third = target === 'Alice' ? chloe : alice;
   await third.reload();
   await menu(third, /Mes groupes/, 'Famille');
@@ -262,7 +263,15 @@ test('téléphone : captures des écrans principaux', async ({ browser }) => {
   await bob.locator('.item', { hasText: 'Casque' }).getByRole('button', { name: 'Je participe' }).click();
   await bob.getByPlaceholder('20').fill('30');
   await bob.getByRole('button', { name: 'Valider' }).click();
+  await expect(bob.getByRole('button', { name: 'Je ne participe plus' })).toBeVisible();   // the longest line
   await shot(bob, 'm4-liste-d-alice');
+  await bob.emulateMedia({ colorScheme: 'dark' });
+  await bob.getByRole('button', { name: 'Je ne participe plus' }).click();
+  await expect(bob.getByRole('dialog')).toContainText('Ta part est retirée de la cagnotte.');
+  await bob.waitForTimeout(400);
+  await shot(bob, 'm4b-confirmation-sombre');
+  await bob.getByRole('dialog').getByRole('button', { name: 'Annuler' }).click();
+  await bob.emulateMedia({ colorScheme: 'light' });
   await bob.getByRole('button', { name: /Ce que j’offre/ }).click();
   await shot(bob, 'm5-ce-que-j-offre');
   await bob.getByRole('button', { name: /Mes groupes/ }).click();
@@ -293,6 +302,16 @@ test('deux parents : la liste de l’enfant se partage', async ({ browser }) => 
   await menu(mum, /Ma liste/, 'Liste de Léo');
   await expect(mum.locator('.items .item', { hasText: 'Train en bois' })).toBeVisible();
   await shot(mum, '6-parents-de-leo');
+
+  // Taking a parent off: a real confirmation, [Annuler] [Retirer].
+  await mum.locator('ul.members li', { hasText: 'Papa' }).getByRole('button', { name: 'Retirer' }).click();
+  const dialog = mum.getByRole('dialog');
+  await expect(dialog).toContainText('Retirer Papa des parents de Léo ?');
+  await dialog.getByRole('button', { name: 'Annuler' }).click();
+  await expect(mum.locator('ul.members')).toContainText('Papa');
+  await mum.locator('ul.members li', { hasText: 'Papa' }).getByRole('button', { name: 'Retirer' }).click();
+  await dialog.getByRole('button', { name: 'Retirer' }).click();
+  await expect(mum.locator('ul.members')).not.toContainText('Papa');
 });
 
 test('après Noël : reçu, offert, puis supprimés au bout d’un mois', async ({ browser }) => {

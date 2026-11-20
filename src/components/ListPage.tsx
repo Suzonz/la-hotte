@@ -25,16 +25,19 @@ function KidParents({ kid }: { kid: Person }) {
         {parents.map(u => (
           <li key={u}>
             <span>{nameOf(u)}</span>
-            {parents.length > 1 && (confirm === u ? (
-              <span className="row">
-                <span className="who">{u === d.me ? `Ne plus gérer la liste de ${kid.name} ?` : `${nameOf(u)} ne gérera plus la liste de ${kid.name}.`}</span>
-                <button className="btn danger sm" onClick={() => run(() => actions.removeParent(kid.id, u), u === d.me ? `Tu ne gères plus la liste de ${kid.name}` : 'C’est fait').then(() => setConfirm(null))}>Confirmer</button>
-                <button className="btn ghost sm" onClick={() => setConfirm(null)}>Annuler</button>
-              </span>
-            ) : <button className="link-btn" onClick={() => setConfirm(u)}>{u === d.me ? 'Me retirer' : 'Retirer'}</button>)}
+            {parents.length > 1 && <button className="link-btn" onClick={() => setConfirm(u)}>{u === d.me ? 'Me retirer' : 'Retirer'}</button>}
           </li>
         ))}
       </ul>
+      {confirm && (
+        <Modal title={confirm === d.me ? `Ne plus gérer la liste de ${kid.name} ?` : `Retirer ${nameOf(confirm)} des parents de ${kid.name} ?`} onClose={() => setConfirm(null)}>
+          <p className="note">{confirm === d.me ? 'Tu ne verras plus sa liste ni ce qui est réservé dessus.' : `${nameOf(confirm)} ne verra plus sa liste ni ce qui est réservé dessus.`}</p>
+          <div className="row modal-actions">
+            <button className="btn ghost" onClick={() => setConfirm(null)}>Annuler</button>
+            <button className="btn danger" onClick={() => run(() => actions.removeParent(kid.id, confirm), confirm === d.me ? `Tu ne gères plus la liste de ${kid.name}` : `${nameOf(confirm)} ne gère plus la liste de ${kid.name}`).then(() => setConfirm(null))}>{confirm === d.me ? 'Me retirer' : 'Retirer'}</button>
+          </div>
+        </Modal>
+      )}
       {adding ? (
         candidates.length ? (
           <div className="stack" style={{ alignItems: 'stretch' }}>
@@ -90,7 +93,7 @@ export function ListPage({ person, onDeleted }: { person: Person; onDeleted: () 
       <WishList person={person} />
 
       {!isMe && reserved.length > 0 && (
-        <section className="stack" style={{ alignItems: 'stretch', gap: 12 }}>
+        <section className="panel">
           <h2>Déjà réservé sur ses envies</h2>
           <ul className="items">{reserved.map(w => <WishCard key={w.id} person={person} wish={w} claims={d.claimsOn(w.id)} />)}</ul>
         </section>
