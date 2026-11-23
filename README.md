@@ -2,6 +2,8 @@
 
 [![Tests](https://github.com/Suzonz/la-hotte/actions/workflows/ci.yml/badge.svg)](https://github.com/Suzonz/la-hotte/actions/workflows/ci.yml) [![Licence MIT](https://img.shields.io/badge/licence-MIT-green.svg)](LICENSE)
 
+**👉 Essayer : [la-hotte-alpha.vercel.app](https://la-hotte-alpha.vercel.app)** (connexion par e-mail, sans mot de passe)
+
 Listes de Noël partagées. Chacun note ses envies et les range dans des groupes (Famille, Amis, Collègues…). Les membres d'un groupe réservent un cadeau (« je l'offre »), cotisent (« je participe ») ou signalent un cadeau hors liste. **Personne ne voit jamais ce qu'on lui prépare.**
 
 - **Next.js 15** (App Router, TypeScript) pour l'interface.
